@@ -18,6 +18,12 @@
     0% { transform: scale(0.4); }
     100% { transform: scale(1); }
   }
+  /* Level-up confetti: each piece falls with its own drift and spin (set inline). */
+  --animate-confetti: confetti 2.6s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+  @keyframes confetti {
+    0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate3d(var(--drift, 0px), 110vh, 0) rotate(var(--spin, 720deg)); opacity: 0.9; }
+  }
 }
 
 /* Semantic tokens. Dark is the default (spec §7); light is applied when the OS asks for it.

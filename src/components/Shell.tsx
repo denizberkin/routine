@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { useData } from '../data/DataProvider'
 import { useTimer } from '../data/TimerProvider'
 import { formatClock } from '../lib/timer'
+import Celebrations from './Celebrations'
 import TimerSheet from './TimerSheet'
 
 const tabs: { to: string; label: string; icon: ReactNode }[] = [
@@ -57,6 +58,7 @@ export default function Shell() {
         <Outlet />
       </main>
       <TimerSheet />
+      <Celebrations />
       <nav className="fixed inset-x-0 bottom-0 border-t border-line bg-surface/90 backdrop-blur-md">
         {timer.active && !timer.open && (
           <button

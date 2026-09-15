@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import AvatarMenu from '../components/AvatarMenu'
+import BadgesSheet from '../components/BadgesSheet'
 import TaskRow from '../components/TaskRow'
 import { useData } from '../data/DataProvider'
 import { useTimer } from '../data/TimerProvider'
@@ -28,6 +29,7 @@ export default function Today() {
   const { loading, tasks, completions, notes, complete, uncomplete, poke } = useData()
   const timer = useTimer()
   const day = useToday()
+  const [badgesOpen, setBadgesOpen] = useState(false)
 
   const myId = me?.id ?? ''
   const mine = useMemo(() => dueList(tasks, completions, myId, day), [tasks, completions, myId, day])
@@ -56,12 +58,15 @@ export default function Today() {
             <div className="truncate font-semibold leading-tight">{me.display_name}</div>
             <div className="text-xs text-ink-3">{format(parseISO(day), 'EEEE d MMM')}</div>
           </div>
-          <div
-            className="rounded-full px-2.5 py-1 text-xs font-bold tabular-nums"
+          <button
+            type="button"
+            onClick={() => setBadgesOpen(true)}
+            aria-label={`Level ${level.level}. Achievements`}
+            className="rounded-full px-2.5 py-1 text-xs font-bold tabular-nums transition-transform active:scale-95"
             style={{ color, background: `color-mix(in srgb, ${color} 15%, transparent)` }}
           >
             Lv {level.level}
-          </div>
+          </button>
         </div>
         <div className="mt-3.5 h-2 overflow-hidden rounded-full bg-surface-2">
           <div
@@ -83,6 +88,8 @@ export default function Today() {
           </span>
         </div>
       </header>
+
+      <BadgesSheet open={badgesOpen} onClose={() => setBadgesOpen(false)} />
 
       {friend && (
         <FriendCard
