@@ -155,3 +155,16 @@ describe('describeRecurrence', () => {
     expect(describeRecurrence('days:mon,wed,fri')).toBe('mon wed fri')
   })
 })
+
+describe('split plans', () => {
+  const exercise = parseRoutine(readFileSync(new URL('../../plans/exercise.md', import.meta.url), 'utf8'))
+  const rl = parseRoutine(readFileSync(new URL('../../plans/rl.md', import.meta.url), 'utf8'))
+
+  it('both parse clean and add up to the seed', () => {
+    expect(exercise.errors).toEqual([])
+    expect(rl.errors).toEqual([])
+    expect(exercise.tasks.length + rl.tasks.length).toBe(27)
+    expect(exercise.tasks.every((t) => t.category === 'Exercise')).toBe(true)
+    expect(rl.tasks.every((t) => t.category === 'RL')).toBe(true)
+  })
+})

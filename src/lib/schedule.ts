@@ -98,3 +98,18 @@ export function canBackfill(day: Ymd, now: Ymd = today()): boolean {
   const gap = differenceInCalendarDays(parseISO(now), parseISO(day))
   return gap >= 0 && gap <= 3
 }
+
+/**
+ * The user's list for a day: everything due, minus `once` tasks already finished and `weekly:N`
+ * tasks whose quota is met — unless it was done on this very day, in which case it stays (as done).
+ */
+export function dueList(tasks: Task[], completions: Completion[], userId: string, day: Ymd): Task[] {
+  return tasks.filter((t) => {
+    if (!isDueOn(t, day)) return false
+    if (isDone(t, completions, userId, day)) return true
+    if (t.recurrence === 'once') return !onceDone(t, completions, userId)
+    const quota = weeklyQuota(t)
+    if (quota !== null) return doneThisWeek(t, completions, userId, day) < quota
+    return true
+  })
+}

@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { useAuth } from '../auth/AuthProvider'
+import { useData } from '../data/DataProvider'
 
 const tabs: { to: string; label: string; icon: ReactNode }[] = [
   {
@@ -34,8 +36,18 @@ const tabs: { to: string; label: string; icon: ReactNode }[] = [
 ]
 
 export default function Shell() {
+  const { profileError } = useAuth()
+  const { error } = useData()
+  const notice = profileError ?? error
   return (
     <div className="flex min-h-dvh flex-col">
+      {notice && (
+        <div role="alert" className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-4">
+          <div className="rounded-full bg-danger px-4 py-2 text-sm font-medium text-white shadow-[0_12px_30px_-10px_rgba(0,0,0,0.6)]">
+            {notice}
+          </div>
+        </div>
+      )}
       <main className="mx-auto w-full max-w-md flex-1 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-28">
         <Outlet />
       </main>

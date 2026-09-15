@@ -10,6 +10,8 @@ interface AuthState {
   session: Session | null
   me: Profile | null
   friend: Profile | null
+  /** Set when the profiles query failed or returned no row for this account — the app can't work without one. */
+  profileError: string | null
   /** Fixed color slot per user — the earlier-created profile is u1 everywhere, for both viewers. */
   slotOf: (userId: string) => Slot
   signIn: (email: string, password: string) => Promise<string | null>
@@ -23,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [profiles, setProfiles] = useState<Profile[]>([])
+  const [profileError, setProfileError] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -49,8 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: true })
-      .then(({ data }) => {
-        if (!cancelled && data) setProfiles(data as Profile[])
+      .then(({ data, error }) => {
+        if (cancelled) return
+        const rows = (data ?? []) as Profile[]
+        setProfiles(rows)
+        if (error) setProfileError(`Couldn't load profiles: ${error.message}`)
+        else if (!rows.some((p) => p.id === session.user.id)) setProfileError(`No profile row for ${session.user.email}`)
+        else setProfileError(null)
       })
     return () => {
       cancelled = true
@@ -88,8 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AuthState>(
-    () => ({ ready, session, me, friend, slotOf, signIn, signInWith, signOut }),
-    [ready, session, me, friend, slotOf, signIn, signInWith, signOut],
+    () => ({ ready, session, me, friend, profileError, slotOf, signIn, signInWith, signOut }),
+    [ready, session, me, friend, profileError, slotOf, signIn, signInWith, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

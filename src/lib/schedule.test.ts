@@ -4,6 +4,7 @@ import { parseRoutine } from './parser'
 import {
   canBackfill,
   dayStatus,
+  dueList,
   doneThisWeek,
   fixedTasksOn,
   isDueOn,
@@ -116,5 +117,26 @@ describe('canBackfill', () => {
     expect(canBackfill('2026-09-13', '2026-09-16')).toBe(true)
     expect(canBackfill('2026-09-12', '2026-09-16')).toBe(false)
     expect(canBackfill('2026-09-17', '2026-09-16')).toBe(false)
+  })
+})
+
+describe('dueList', () => {
+  it('hides finished once-tasks and met weekly quotas, keeps today’s done items', () => {
+    const day = '2026-10-07' // wed, phase 2
+    const walk = byTitle('Walk 25-30 min') // weekly:4
+    const once = byTitle('Sutton and Barto Ch. 5-6')
+    const daily = byTitle('Five-minute minimum', 'Phase 2')
+    const cs = [
+      comp(once, '2026-10-05'),
+      comp(walk, '2026-10-05'),
+      comp(walk, '2026-10-06'),
+      comp(walk, '2026-10-06'),
+      comp(walk, '2026-10-07'),
+    ]
+    const titles = dueList(tasks, cs, 'me', day).map((t) => t.title)
+    expect(titles).not.toContain(once.title)
+    expect(titles).toContain(walk.title) // 4/4 but done today → stays, as done
+    expect(titles).toContain(daily.title)
+    expect(dueList(tasks, cs, 'me', '2026-10-08').map((t) => t.title)).not.toContain(walk.title)
   })
 })

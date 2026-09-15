@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useAuth } from '../auth/AuthProvider'
+import AvatarMenu from '../components/AvatarMenu'
 import { describeRecurrence, parseRoutine } from '../lib/parser'
 import type { ParsedRoutine, ParsedTask } from '../lib/parser'
 import { listRoutines, saveRoutine, setRoutineActive } from '../lib/routines'
@@ -11,7 +12,7 @@ type RoutineRow = Routine & { task_count: number }
 const day = (d: string) => format(parseISO(d), 'd MMM')
 
 export default function Plan() {
-  const { me, friend, slotOf, signOut } = useAuth()
+  const { me, friend, slotOf } = useAuth()
   const [md, setMd] = useState('')
   const [parsed, setParsed] = useState<ParsedRoutine | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -35,7 +36,11 @@ export default function Plan() {
   }
 
   async function save() {
-    if (!parsed || !me) return
+    if (!parsed) return
+    if (!me) {
+      setSaveError('No profile for this account yet.')
+      return
+    }
     setSaveState('saving')
     setSaveError(null)
     try {
@@ -71,21 +76,22 @@ export default function Plan() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-baseline justify-between">
+      <header className="flex items-center justify-between">
         <h1 className="text-[22px] font-bold tracking-tight">Plan</h1>
-        {editing && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null)
-              setParsed(null)
-            }}
-            className="text-sm text-ink-2"
-          >
-            Editing {editing.title} <span className="ml-1 text-ink-3">×</span>
-          </button>
-        )}
+        <AvatarMenu />
       </header>
+      {editing && (
+        <button
+          type="button"
+          onClick={() => {
+            setEditingId(null)
+            setParsed(null)
+          }}
+          className="-mt-3 self-start text-sm text-ink-2"
+        >
+          Editing {editing.title} <span className="ml-1 text-ink-3">×</span>
+        </button>
+      )}
 
       <textarea
         ref={textareaRef}
@@ -172,14 +178,6 @@ export default function Plan() {
           })}
         </section>
       )}
-
-      <button
-        type="button"
-        onClick={signOut}
-        className="mt-6 self-center py-3 text-sm text-ink-3 hover:text-ink-2"
-      >
-        Sign out
-      </button>
     </div>
   )
 }
