@@ -4,7 +4,7 @@ Source of truth: `routine-spec.md`. Order follows spec §9. **The app is genuine
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **(user)** = manual step only the user can do (dashboards, secrets)
 
-State as of 2026-09-15: Phases 1–2 done and deployed (blank shell + login live at https://denizberkin.github.io/routine/). Pages source is set to GitHub Actions. Waiting on the user for Phase 3 (Supabase project + secrets).
+State as of 2026-09-15: Phases 1, 2, 4 done and deployed (shell + login + plan screen live at https://denizberkin.github.io/routine/); `schedule.ts` from Phase 5 done. Pages source is set to GitHub Actions. **Blocked on Phase 3** (user: Supabase project, users, secrets) — after that: verify login + plan save end-to-end, then build Today.
 
 ---
 
@@ -60,17 +60,17 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [ ] Verify: both users can log in locally; `select * from profiles` returns 2 rows; a user cannot insert a completion with someone else's `user_id`
 
 ## 4. Markdown parser + `/plan`
-- [ ] `src/lib/parser.ts` — pure `parseRoutine(md) → { title, start, tasks, errors }` per spec §5
+- [x] `src/lib/parser.ts` — pure `parseRoutine(md) → { title, start, tasks, errors }` per spec §5
   - frontmatter `title`, `start`
   - `## Phase`, `> YYYY-MM-DD -> YYYY-MM-DD` window, `### Category`
   - `- [ ] Title @daily | @mon,wed,… | @weekly:N | !once  +N`
   - strip tokens from title; XP default 10; missing window → frontmatter `start`, open end
   - unknown token / task outside a category / bad date → error with line number, line skipped
   - recurrence stored as `'daily' | 'days:mon,wed' | 'weekly:N' | 'once'`
-- [ ] `src/lib/parser.test.ts` — `routine-seed-plan.md` parses with **0 errors** and the right task count; bad-line cases; default XP; missing window fallback
-- [ ] `src/lib/routines.ts` — save: upsert routine; diff tasks by `(title, category)` → keep `id` for matches, insert new, delete orphans; **never delete completions of matched tasks**
-- [ ] `/plan` screen — textarea → **Parse** → preview table (title · category · phase · recurrence · XP · window) + per-line errors → **Save routine**
-- [ ] Existing routines list with activate / deactivate
+- [x] `src/lib/parser.test.ts` — `routine-seed-plan.md` parses with **0 errors** and the right task count; bad-line cases; default XP; missing window fallback
+- [x] `src/lib/routines.ts` — save: upsert routine; diff tasks by `(title, category)` → keep `id` for matches, insert new, delete orphans; **never delete completions of matched tasks**
+- [x] `/plan` screen — textarea → **Parse** → preview table (title · category · phase · recurrence · XP · window) + per-line errors → **Save routine**
+- [x] Existing routines list with activate / deactivate
 - [ ] Push the seed plan through end-to-end; confirm rows in `tasks`
 
 ## 5. `/` Today
