@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { useData } from '../data/DataProvider'
 import { useTimer } from '../data/TimerProvider'
+import { inkOf } from '../lib/colors'
 import { formatClock } from '../lib/timer'
 import Celebrations from './Celebrations'
 import TimerSheet from './TimerSheet'
@@ -44,7 +45,7 @@ export default function Shell() {
   const { error } = useData()
   const timer = useTimer()
   const notice = profileError ?? error
-  const color = me ? `var(--${slotOf(me.id)})` : 'var(--ink)'
+  const color = me ? inkOf(slotOf(me.id)) : 'var(--ink)'
   return (
     <div className="flex min-h-dvh flex-col">
       {notice && (

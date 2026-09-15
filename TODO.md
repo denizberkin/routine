@@ -4,7 +4,7 @@ Source of truth: `routine-spec.md`. Order follows spec §9. **The app is genuine
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **(user)** = manual step only the user can do (dashboards, secrets)
 
-State as of 2026-09-15: Phases 1–8 built (+ timers, emoji picker) and deployed. Remaining: Phase 9 achievements, Phase 10 polish (level-up celebration, light-mode + mobile pass). User still had to run `seed-profiles.sql` and the duration migration.
+State as of 2026-09-15: everything in spec §9 is built and deployed, plus timers, emoji picker, task sheet, per-category time left. Remaining: a real-device mobile pass (Today fits one screen? tap targets), and whatever the two users report after a week of use.
 
 ---
 
@@ -29,6 +29,8 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [x] Multiplier uses the streak *including* the completion being paid, as of its due date — so the 7th consecutive day is already 1.25×.
 - [x] Calendar: past `!once` tasks completed on a later day are hidden (prevents double completion); "full" = every fixed task that day done.
 - [x] Avatar emoji is changeable from the avatar menu (user request); `profiles` update RLS already allows it.
+- [x] Task rows: the circle completes in one tap; tapping the title opens a task sheet (start timer / mark done) — user asked for an explicit timer option per task. Category headers show time left (sum of undone durations).
+- [x] Colors: `fillOf(slot)` for fills, `inkOf(slot)` for text (darker in light mode); text on a user color uses `text-on-accent`.
 - [x] Level-up celebration + badge-unlock toasts: "seen" state in `localStorage`, keyed by user id + level/badge.
 - [x] `!once` tasks appear in Today every day of their phase window until completed.
 - [x] `recharts` not installed — spec lists it "only if needed for the stats view" and there is no stats screen in v1.
@@ -118,17 +120,17 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [x] Poke button — visible when friend has 0 completions today and local time ≥ 12:00; writes `day_notes`; recipient sees a one-line banner
 
 ## 9. Achievements
-- [ ] `src/lib/achievements.ts` — the 9 badges from spec §6, pure function `(tasks, completions) → Badge[]`
-- [ ] Badge grid (locked = greyed), reachable from the header
-- [ ] One-line toast on new unlock; seen-state in `localStorage`
+- [x] `src/lib/achievements.ts` — the 9 badges from spec §6, pure function `(tasks, completions) → Badge[]`
+- [x] Badge grid (locked = greyed), reachable from the header
+- [x] One-line toast on new unlock; seen-state in `localStorage`
 
 ## 10. Polish
-- [ ] Completion animation — checkbox fills, row dims, XP number floats up and fades, ~200ms
-- [ ] Level-up full-screen celebration — confetti or similar, one-tap dismiss, once per level
-- [ ] Two user colors consistent everywhere (avatars, dots, bars)
-- [ ] Light-mode pass
+- [x] Completion animation — checkbox fills, row dims, XP number floats up and fades, ~200ms
+- [x] Level-up full-screen celebration — confetti or similar, one-tap dismiss, once per level
+- [x] Two user colors consistent everywhere (avatars, dots, bars)
+- [x] Light-mode pass
 - [ ] Mobile pass — Today fits one screen for 4–6 tasks; tap targets ≥ 44px
-- [ ] Sweep for explanatory text / tooltips-as-docs and delete them
+- [x] Sweep for explanatory text / tooltips-as-docs and delete them
 
 ---
 

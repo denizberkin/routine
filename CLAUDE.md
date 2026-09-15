@@ -16,6 +16,7 @@ Two-person gamified accountability / routine tracker. Static React SPA on GitHub
 - Streak: ≥1 completion counts for the day; one grace day per week. This is the most important design detail — don't make it stricter.
 - Backfill: only the last 3 days, 50% XP, reduction shown explicitly.
 - UI: dark default + `prefers-color-scheme` light, system font stack (no webfonts), mobile-first, no explanatory paragraphs / onboarding / tooltips-as-docs. Empty state = one line + one button.
+- User colors: `fillOf(slot)` for fills/bars/buttons, `inkOf(slot)` for text (it darkens in light mode), `text-on-accent` for text sitting on a user color. Never `var(--u1)` for text directly.
 
 ## Stack
 React 18 + TypeScript · Vite · Tailwind · `react-router-dom` (HashRouter) · `@supabase/supabase-js` · `date-fns` · vitest for `src/lib`. Custom markdown parser (~150 lines, grammar in spec §5) — no markdown library. `recharts` only if a stats view is ever added (not in v1).
@@ -23,7 +24,7 @@ React 18 + TypeScript · Vite · Tailwind · `react-router-dom` (HashRouter) · 
 ## Target layout
 ```
 src/
-  lib/          supabase.ts, parser.ts, schedule.ts, routines.ts, gamification.ts, timer.ts, achievements.ts  ← pure logic, unit-tested
+  lib/          supabase.ts, parser.ts, schedule.ts, routines.ts, gamification.ts, timer.ts, achievements.ts, colors.ts  ← pure logic, unit-tested
   data/         DataProvider (tasks + completions + realtime), TimerProvider (per-task countdown, persisted), useToday
   auth/         AuthProvider.tsx, RequireAuth.tsx
   screens/      Login.tsx, Today.tsx, Calendar.tsx, Plan.tsx

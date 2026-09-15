@@ -4,6 +4,7 @@ import { useData } from '../data/DataProvider'
 import { useToday } from '../data/useToday'
 import { achievements } from '../lib/achievements'
 import type { Badge } from '../lib/achievements'
+import { inkOf } from '../lib/colors'
 import { levelFor, xpSummary } from '../lib/gamification'
 
 interface Seen {
@@ -69,7 +70,7 @@ export default function Celebrations() {
     return () => window.clearTimeout(id)
   }, [levelUp])
 
-  const color = me ? `var(--${slotOf(me.id)})` : 'var(--ink)'
+  const color = me ? inkOf(slotOf(me.id)) : 'var(--ink)'
   const toast = toasts[0]
 
   return (

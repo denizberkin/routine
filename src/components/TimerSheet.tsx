@@ -2,6 +2,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { useData } from '../data/DataProvider'
 import { useTimer } from '../data/TimerProvider'
 import { isDone, today } from '../lib/schedule'
+import { fillOf, inkOf } from '../lib/colors'
 import { formatClock } from '../lib/timer'
 
 const R = 88
@@ -14,7 +15,8 @@ export default function TimerSheet() {
   const { tasks, completions } = useData()
   if (!active || !open || !me) return null
 
-  const color = `var(--${slotOf(me.id)})`
+  const color = fillOf(slotOf(me.id))
+  const ink = inkOf(slotOf(me.id))
   const progress = Math.min(1, Math.max(0, 1 - remaining / active.durationMs))
   const task = tasks.find((t) => t.id === active.taskId)
   const alreadyDone = task ? isDone(task, completions, me.id, today()) : true
@@ -61,7 +63,7 @@ export default function TimerSheet() {
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span
               className="text-5xl font-bold tabular-nums tracking-tight"
-              style={{ color: finished ? color : 'var(--ink)' }}
+              style={{ color: finished ? ink : 'var(--ink)' }}
             >
               {formatClock(remaining)}
             </span>
@@ -77,7 +79,7 @@ export default function TimerSheet() {
               <button
                 type="button"
                 onClick={markDone}
-                className="h-12 w-full rounded-xl text-base font-semibold text-ground"
+                className="h-12 w-full rounded-xl text-base font-semibold text-on-accent"
                 style={{ background: color }}
               >
                 Mark done +{active.xp}

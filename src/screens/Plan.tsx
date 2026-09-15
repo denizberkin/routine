@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useAuth } from '../auth/AuthProvider'
 import AvatarMenu from '../components/AvatarMenu'
+import { fillOf, inkOf } from '../lib/colors'
 import { describeRecurrence, parseRoutine } from '../lib/parser'
 import { formatMinutes } from '../lib/timer'
 import type { ParsedRoutine, ParsedTask } from '../lib/parser'
@@ -28,7 +29,7 @@ export default function Plan() {
   }, [])
 
   const editing = useMemo(() => routines.find((r) => r.id === editingId) ?? null, [routines, editingId])
-  const myColor = me ? `var(--${slotOf(me.id)})` : 'var(--ink)'
+  const myColor = me ? inkOf(slotOf(me.id)) : 'var(--ink)'
 
   function parse() {
     setParsed(parseRoutine(md))
@@ -170,7 +171,7 @@ export default function Plan() {
                 <Switch
                   on={r.is_active}
                   disabled={!mine}
-                  color={`var(--${slotOf(r.owner_id)})`}
+                  color={fillOf(slotOf(r.owner_id))}
                   onChange={() => toggle(r)}
                   label={`${r.title} active`}
                 />

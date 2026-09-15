@@ -2,6 +2,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { useData } from '../data/DataProvider'
 import { useToday } from '../data/useToday'
 import { achievements } from '../lib/achievements'
+import { fillOf, inkOf } from '../lib/colors'
 import { xpSummary } from '../lib/gamification'
 
 /** Bottom sheet: XP breakdown and the nine badges, locked ones greyed with their progress. */
@@ -11,7 +12,8 @@ export default function BadgesSheet({ open, onClose }: { open: boolean; onClose:
   const day = useToday()
   if (!open || !me) return null
 
-  const color = `var(--${slotOf(me.id)})`
+  const color = fillOf(slotOf(me.id))
+  const ink = inkOf(slotOf(me.id))
   const xp = xpSummary(tasks, completions, me.id, friend?.id ?? null, day)
   const badges = achievements(tasks, completions, me.id, friend?.id ?? null, day)
 
@@ -26,7 +28,7 @@ export default function BadgesSheet({ open, onClose }: { open: boolean; onClose:
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" aria-hidden />
         <div className="mb-1 flex items-baseline justify-between">
           <h2 className="font-semibold">Achievements</h2>
-          <span className="text-sm font-semibold tabular-nums" style={{ color }}>
+          <span className="text-sm font-semibold tabular-nums" style={{ color: ink }}>
             {xp.total} XP
           </span>
         </div>

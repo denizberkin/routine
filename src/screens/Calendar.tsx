@@ -5,6 +5,7 @@ import AvatarMenu from '../components/AvatarMenu'
 import TaskRow from '../components/TaskRow'
 import { useData } from '../data/DataProvider'
 import { useToday } from '../data/useToday'
+import { fillOf, inkOf } from '../lib/colors'
 import { awardFor } from '../lib/gamification'
 import { canBackfill, dayStatus, dueList, isDone, toYmd } from '../lib/schedule'
 import type { DayStatus, Ymd } from '../lib/schedule'
@@ -97,7 +98,7 @@ export default function Calendar() {
               </span>
               <span className="flex gap-1" aria-hidden>
                 {people.map((p, i) => (
-                  <Mark key={p.id} status={marks.get(d)?.[i] ?? 'empty'} color={`var(--${slotOf(p.id)})`} faint={future} />
+                  <Mark key={p.id} status={marks.get(d)?.[i] ?? 'empty'} color={fillOf(slotOf(p.id))} faint={future} />
                 ))}
               </span>
             </button>
@@ -110,8 +111,10 @@ export default function Calendar() {
         now={now}
         me={me}
         friend={friend}
-        color={`var(--${slotOf(me.id)})`}
-        friendColor={friend ? `var(--${slotOf(friend.id)})` : ''}
+        color={fillOf(slotOf(me.id))}
+        ink={inkOf(slotOf(me.id))}
+        friendColor={friend ? fillOf(slotOf(friend.id)) : ''}
+        friendInk={friend ? inkOf(slotOf(friend.id)) : ''}
         tasks={tasks}
         completions={completions}
         onComplete={(t) => complete(t, selected)}
@@ -141,7 +144,9 @@ function DayPanel({
   me,
   friend,
   color,
+  ink,
   friendColor,
+  friendInk,
   tasks,
   completions,
   onComplete,
@@ -152,7 +157,9 @@ function DayPanel({
   me: Profile
   friend: Profile | null
   color: string
+  ink: string
   friendColor: string
+  friendInk: string
   tasks: Task[]
   completions: Completion[]
   onComplete: (t: Task) => void
@@ -166,9 +173,9 @@ function DayPanel({
   const awardedFor = (t: Task, userId: string) =>
     completions.find((c) => c.task_id === t.id && c.user_id === userId && c.due_date === day)?.xp_awarded
 
-  const sections: { person: Profile; c: string; mine: boolean }[] = [
-    { person: me, c: color, mine: true },
-    ...(friend ? [{ person: friend, c: friendColor, mine: false }] : []),
+  const sections: { person: Profile; c: string; i: string; mine: boolean }[] = [
+    { person: me, c: color, i: ink, mine: true },
+    ...(friend ? [{ person: friend, c: friendColor, i: friendInk, mine: false }] : []),
   ]
 
   return (
@@ -177,7 +184,7 @@ function DayPanel({
         <h2 className="font-semibold">{format(parseISO(day), 'EEEE d MMM')}</h2>
         {note && <span className="text-xs text-ink-3">{note}</span>}
       </div>
-      {sections.map(({ person, c, mine }) => {
+      {sections.map(({ person, c, i, mine }) => {
         const list = dueList(tasks, completions, person.id, day)
         return (
           <div key={person.id}>
@@ -198,6 +205,7 @@ function DayPanel({
                       xp={awardedFor(t, person.id) ?? (mine ? awardFor(t, day, completions, me.id, now) : t.xp)}
                       done={done}
                       color={c}
+                      ink={i}
                       readOnly={!mine || !editable}
                       onToggle={() => (done ? onUncomplete(t) : onComplete(t))}
                     />

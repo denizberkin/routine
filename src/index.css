@@ -41,6 +41,7 @@
   --color-u2: var(--u2);
   --color-u2-ink: var(--u2-ink);
   --color-danger: var(--danger);
+  --color-on-accent: var(--on-accent);
 }
 
 :root {
@@ -58,6 +59,8 @@
   --u2: #a78bfa;
   --u2-ink: #b9a3ff;
   --danger: #fb7185;
+  /* Text placed on a user color. Both hues are light, so this stays dark in both themes. */
+  --on-accent: #1c1a26;
 }
 
 @media (prefers-color-scheme: light) {
@@ -75,6 +78,7 @@
     --u2: #a78bfa;
     --u2-ink: #6a4fd1;
     --danger: #e11d48;
+    --on-accent: #1c1a26;
   }
 }
 

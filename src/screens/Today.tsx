@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthProvider'
 import AvatarMenu from '../components/AvatarMenu'
 import BadgesSheet from '../components/BadgesSheet'
 import TaskRow from '../components/TaskRow'
+import TaskSheet from '../components/TaskSheet'
 import { useData } from '../data/DataProvider'
 import { useTimer } from '../data/TimerProvider'
 import { useToday } from '../data/useToday'
@@ -19,6 +20,7 @@ import {
   streak,
   xpSummary,
 } from '../lib/gamification'
+import { fillOf, inkOf } from '../lib/colors'
 import { doneThisWeek, dueList, isDone, weekOf, weeklyQuota } from '../lib/schedule'
 import type { Ymd } from '../lib/schedule'
 import { formatClock, formatMinutes, resolveMinutes } from '../lib/timer'
@@ -30,6 +32,7 @@ export default function Today() {
   const timer = useTimer()
   const day = useToday()
   const [badgesOpen, setBadgesOpen] = useState(false)
+  const [openTask, setOpenTask] = useState<Task | null>(null)
 
   const myId = me?.id ?? ''
   const mine = useMemo(() => dueList(tasks, completions, myId, day), [tasks, completions, myId, day])
@@ -40,8 +43,10 @@ export default function Today() {
   }, [mine])
 
   if (!me) return null
-  const color = `var(--${slotOf(me.id)})`
-  const friendColor = friend ? `var(--${slotOf(friend.id)})` : color
+  const color = fillOf(slotOf(me.id))
+  const ink = inkOf(slotOf(me.id))
+  const friendColor = friend ? fillOf(slotOf(friend.id)) : color
+  const friendInk = friend ? inkOf(slotOf(friend.id)) : ink
   const xp = xpSummary(tasks, completions, me.id, friend?.id ?? null, day)
   const level = levelFor(xp.total)
   const fire = streak(completions, me.id, day)
@@ -63,7 +68,7 @@ export default function Today() {
             onClick={() => setBadgesOpen(true)}
             aria-label={`Level ${level.level}. Achievements`}
             className="rounded-full px-2.5 py-1 text-xs font-bold tabular-nums transition-transform active:scale-95"
-            style={{ color, background: `color-mix(in srgb, ${color} 15%, transparent)` }}
+            style={{ color: ink, background: `color-mix(in srgb, ${color} 15%, transparent)` }}
           >
             Lv {level.level}
           </button>
@@ -81,7 +86,7 @@ export default function Today() {
           <span>
             🔥 {fire}
             {mult > 1 && (
-              <span className="ml-1.5 font-semibold" style={{ color }}>
+              <span className="ml-1.5 font-semibold" style={{ color: ink }}>
                 ×{mult}
               </span>
             )}
@@ -96,7 +101,9 @@ export default function Today() {
           me={me}
           friend={friend}
           color={friendColor}
+          ink={friendInk}
           myColor={color}
+          myInk={ink}
           list={dueList(tasks, completions, friend.id, day)}
           completions={completions}
           notes={notes}
@@ -119,42 +126,65 @@ export default function Today() {
       ) : mine.length === 0 ? (
         <p className="pt-16 text-center text-ink-2">Nothing due today.</p>
       ) : (
-        groups.map(([category, list]) => (
-          <section key={category}>
-            <h2 className="mb-1 px-2 text-sm font-semibold text-ink-2">{category}</h2>
-            <div className="-mx-2 flex flex-col">
-              {list.map((task) => {
-                const done = isDone(task, completions, me.id, day)
-                const quota = weeklyQuota(task)
-                const awarded = completions.find(
-                  (c) => c.task_id === task.id && c.user_id === me.id && c.due_date === day,
-                )?.xp_awarded
-                const timing = timer.active?.taskId === task.id
-                return (
-                  <TaskRow
-                    key={task.id}
-                    title={task.title}
-                    timerLabel={timing ? formatClock(timer.remaining) : formatMinutes(resolveMinutes(task))}
-                    timerActive={timing}
-                    onTimer={() => (timing ? timer.show() : timer.start(task, resolveMinutes(task)))}
-                    meta={
-                      quota !== null
-                        ? `${doneThisWeek(task, completions, me.id, day)}/${quota} this week`
-                        : task.recurrence === 'once'
-                          ? 'once'
-                          : undefined
-                    }
-                    xp={awarded ?? awardFor(task, day, completions, me.id, day)}
-                    done={done}
-                    color={color}
-                    onToggle={() => (done ? uncomplete(task, day) : complete(task, day))}
-                  />
-                )
-              })}
-            </div>
-          </section>
-        ))
+        groups.map(([category, list]) => {
+          const left = list
+            .filter((t) => !isDone(t, completions, me.id, day))
+            .reduce((sum, t) => sum + resolveMinutes(t), 0)
+          return (
+            <section key={category}>
+              <div className="mb-1 flex items-baseline justify-between px-2">
+                <h2 className="text-sm font-semibold text-ink-2">{category}</h2>
+                <span className="text-xs tabular-nums" style={{ color: left ? 'var(--ink-3)' : ink }}>
+                  {left ? `${formatMinutes(left)} left` : 'done'}
+                </span>
+              </div>
+              <div className="-mx-2 flex flex-col">
+                {list.map((task) => {
+                  const done = isDone(task, completions, me.id, day)
+                  const quota = weeklyQuota(task)
+                  const awarded = completions.find(
+                    (c) => c.task_id === task.id && c.user_id === me.id && c.due_date === day,
+                  )?.xp_awarded
+                  const timing = timer.active?.taskId === task.id
+                  const when =
+                    quota !== null
+                      ? `, ${doneThisWeek(task, completions, me.id, day)}/${quota} this week`
+                      : task.recurrence === 'once'
+                        ? ', once'
+                        : ''
+                  return (
+                    <TaskRow
+                      key={task.id}
+                      title={task.title}
+                      meta={(timing ? formatClock(timer.remaining) : formatMinutes(resolveMinutes(task))) + when}
+                      metaActive={timing}
+                      xp={awarded ?? awardFor(task, day, completions, me.id, day)}
+                      done={done}
+                      color={color}
+                      ink={ink}
+                      onToggle={() => (done ? uncomplete(task, day) : complete(task, day))}
+                      onOpen={() => setOpenTask(task)}
+                    />
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })
       )}
+
+      <TaskSheet
+        task={openTask}
+        done={openTask ? isDone(openTask, completions, me.id, day) : false}
+        xp={openTask ? awardFor(openTask, day, completions, me.id, day) : 0}
+        color={color}
+        onToggle={() => {
+          if (!openTask) return
+          if (isDone(openTask, completions, me.id, day)) uncomplete(openTask, day)
+          else complete(openTask, day)
+        }}
+        onClose={() => setOpenTask(null)}
+      />
     </div>
   )
 }
@@ -163,7 +193,9 @@ function FriendCard({
   me,
   friend,
   color,
+  ink,
   myColor,
+  myInk,
   list,
   completions,
   notes,
@@ -175,7 +207,9 @@ function FriendCard({
   me: Profile
   friend: Profile
   color: string
+  ink: string
   myColor: string
+  myInk: string
   list: Task[]
   completions: Completion[]
   notes: DayNote[]
@@ -210,7 +244,7 @@ function FriendCard({
             </div>
           )}
         </div>
-        <span className="text-sm font-semibold tabular-nums" style={{ color }}>
+        <span className="text-sm font-semibold tabular-nums" style={{ color: ink }}>
           {done}/{list.length}
         </span>
         <span className="text-sm tabular-nums text-ink-2">🔥 {fire}</span>
@@ -218,7 +252,7 @@ function FriendCard({
           <button
             type="button"
             onClick={onPoke}
-            className="ml-1 h-8 rounded-full px-3 text-xs font-semibold text-ground"
+            className="ml-1 h-8 rounded-full px-3 text-xs font-semibold text-on-accent"
             style={{ background: myColor }}
           >
             Poke
@@ -233,7 +267,7 @@ function FriendCard({
               Both in today 🤝{' '}
               <span
                 className="font-semibold"
-                style={{ background: `linear-gradient(90deg, ${myColor}, ${color})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}
+                style={{ background: `linear-gradient(90deg, ${myInk}, ${ink})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}
               >
                 +{SAME_DAY_BONUS}
               </span>
