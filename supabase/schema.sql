@@ -81,6 +81,16 @@ create policy "own tasks"     on tasks       for all    to authenticated
 create policy "own comps"     on completions for all    to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own notes"     on day_notes   for all    to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- Grants --------------------------------------------------------------------
+-- Newer projects don't grant table privileges to the API roles automatically.
+-- RLS above still decides which rows a user can see or change; this just lets
+-- the `authenticated` role reach the tables at all.
+
+grant usage on schema public to authenticated;
+grant select, insert, update, delete
+  on table profiles, routines, tasks, completions, day_notes
+  to authenticated;
+
 -- Realtime ------------------------------------------------------------------
 -- The app subscribes to live changes on these two tables (spec §4, §6).
 
