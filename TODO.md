@@ -74,7 +74,7 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [ ] Push the seed plan through end-to-end; confirm rows in `tasks`
 
 ## 5. `/` Today
-- [ ] `src/lib/schedule.ts` — `isDueOn(task, date)` for daily / days / once / weekly; `weekQuota(task, completions, date)`; tests
+- [x] `src/lib/schedule.ts` — `isDueOn`, `weekOf` (ISO), `doneThisWeek`, `scheduledInWeek`, `dayStatus`, `canBackfill`; tests
 - [ ] Data hook — active routines' tasks + all completions for both users (2 users → small, load all; refine later if needed)
 - [ ] Today screen — header (level badge, XP bar, 🔥 streak — stub values until Phase 8), tasks grouped by category, large tappable rows with checkbox
 - [ ] `@weekly:N` rows show "2/4 this week", checkable any day of the week
