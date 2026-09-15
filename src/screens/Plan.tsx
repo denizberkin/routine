@@ -6,7 +6,8 @@ import { fillOf, inkOf } from '../lib/colors'
 import { describeRecurrence, parseRoutine } from '../lib/parser'
 import { formatMinutes } from '../lib/timer'
 import type { ParsedRoutine, ParsedTask } from '../lib/parser'
-import { listRoutines, saveRoutine, setRoutineActive } from '../lib/routines'
+import { useData } from '../data/DataProvider'
+import { deleteRoutine, listRoutines, saveRoutine, setRoutineActive } from '../lib/routines'
 import type { Routine } from '../lib/types'
 
 type RoutineRow = Routine & { task_count: number }
@@ -15,12 +16,14 @@ const day = (d: string) => format(parseISO(d), 'd MMM')
 
 export default function Plan() {
   const { me, friend, slotOf } = useAuth()
+  const { refresh: refreshData } = useData()
   const [md, setMd] = useState('')
   const [parsed, setParsed] = useState<ParsedRoutine | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [routines, setRoutines] = useState<RoutineRow[]>([])
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const refresh = () => listRoutines().then(setRoutines).catch(() => {})
@@ -70,6 +73,19 @@ export default function Plan() {
     try {
       await setRoutineActive(r.id, !r.is_active)
     } catch {
+      refresh()
+    }
+  }
+
+  async function remove(r: RoutineRow) {
+    setConfirmDelete(null)
+    setRoutines((rs) => rs.filter((x) => x.id !== r.id))
+    if (editingId === r.id) setEditingId(null)
+    try {
+      await deleteRoutine(r.id)
+      refreshData()
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Could not delete.')
       refresh()
     }
   }
@@ -153,6 +169,30 @@ export default function Plan() {
           {routines.map((r) => {
             const mine = r.owner_id === me?.id
             const owner = mine ? me : friend
+            if (confirmDelete === r.id) {
+              return (
+                <div key={r.id} className="flex items-center gap-3 rounded-xl bg-surface px-3 py-2">
+                  <div className="min-w-0 flex-1 text-sm">
+                    <div className="truncate font-semibold">{r.title}</div>
+                    <div className="text-xs text-danger">Deletes {r.task_count} tasks and their history</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => remove(r)}
+                    className="h-9 rounded-full bg-danger px-3 text-xs font-semibold text-white"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(null)}
+                    className="h-9 rounded-full bg-surface-2 px-3 text-xs font-semibold text-ink"
+                  >
+                    Keep
+                  </button>
+                </div>
+              )
+            }
             return (
               <div key={r.id} className="flex items-center gap-3 rounded-xl py-2">
                 <span className="text-xl" aria-hidden>
@@ -175,6 +215,18 @@ export default function Plan() {
                   onChange={() => toggle(r)}
                   label={`${r.title} active`}
                 />
+                {mine && (
+                  <button
+                    type="button"
+                    aria-label={`Delete ${r.title}`}
+                    onClick={() => setConfirmDelete(r.id)}
+                    className="grid size-9 place-items-center rounded-full text-ink-3 transition-colors hover:bg-surface hover:text-danger"
+                  >
+                    <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+                    </svg>
+                  </button>
+                )}
               </div>
             )
           })}
