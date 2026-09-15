@@ -28,7 +28,7 @@ import type { Completion, DayNote, Profile, Task } from '../lib/types'
 
 export default function Today() {
   const { me, friend, slotOf } = useAuth()
-  const { loading, tasks, completions, notes, complete, uncomplete, poke } = useData()
+  const { loading, tasks, completions, notes, online, complete, uncomplete, poke } = useData()
   const timer = useTimer()
   const day = useToday()
   const [badgesOpen, setBadgesOpen] = useState(false)
@@ -107,6 +107,7 @@ export default function Today() {
           list={dueList(tasks, completions, friend.id, day)}
           completions={completions}
           notes={notes}
+          online={online.has(friend.id)}
           day={day}
           bothToday={bothToday}
           myDoneToday={mine.filter((t) => isDone(t, completions, me.id, day)).length}
@@ -199,6 +200,7 @@ function FriendCard({
   list,
   completions,
   notes,
+  online,
   day,
   bothToday,
   myDoneToday,
@@ -213,6 +215,7 @@ function FriendCard({
   list: Task[]
   completions: Completion[]
   notes: DayNote[]
+  online: boolean
   day: Ymd
   bothToday: boolean
   myDoneToday: number
@@ -227,11 +230,18 @@ function FriendCard({
   return (
     <div className="flex flex-col gap-2.5 rounded-2xl bg-surface px-4 py-3">
       <div className="flex items-center gap-3">
-        <span className="text-[22px] leading-none" aria-hidden>
+        <span className="relative text-[22px] leading-none" aria-hidden>
           {friend.avatar_emoji}
+          <span
+            className="absolute -bottom-0.5 -right-1 size-2.5 rounded-full ring-2 ring-surface transition-colors duration-300"
+            style={{ background: online ? '#22c55e' : 'var(--ink-3)' }}
+          />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold">{friend.display_name}</div>
+          <div className="truncate text-sm font-semibold">
+            {friend.display_name}
+            <span className="sr-only">{online ? ', online' : ', offline'}</span>
+          </div>
           {list.length > 0 && (
             <div className="mt-1.5 flex gap-1" aria-hidden>
               {list.map((t) => (

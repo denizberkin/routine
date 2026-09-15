@@ -15,6 +15,8 @@ interface DataState {
   /** Every completion by either user. Two people → small enough to hold whole. */
   completions: Completion[]
   notes: DayNote[]
+  /** User ids with the app open in the foreground right now (realtime presence). */
+  online: Set<string>
   /** One-line, auto-clearing; shown by the shell. */
   error: string | null
   /** Log a completion; XP is worked out here (streak multiplier, half for backfill). */
@@ -45,6 +47,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [completions, setCompletions] = useState<Completion[]>([])
   const [notes, setNotes] = useState<DayNote[]>([])
+  const [online, setOnline] = useState<Set<string>>(() => new Set())
   const [error, setErrorState] = useState<string | null>(null)
   const errorTimer = useRef<number | undefined>(undefined)
   const latest = useRef(completions)
@@ -126,6 +129,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Presence: announce ourselves while the tab is visible; the server drops us when it isn't.
+  useEffect(() => {
+    if (!userId) return
+    const channel = supabase.channel('presence', { config: { presence: { key: userId } } })
+    const announce = () => channel.track({ online_at: new Date().toISOString() })
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') announce()
+      else channel.untrack()
+    }
+    channel
+      .on('presence', { event: 'sync' }, () => setOnline(new Set(Object.keys(channel.presenceState()))))
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED' && document.visibilityState === 'visible') announce()
+      })
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      supabase.removeChannel(channel)
+    }
+  }, [userId])
+
   const complete = useCallback(
     async (task: Task, day: Ymd) => {
       if (!userId) return
@@ -182,8 +206,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [userId, setError, refresh])
 
   const value = useMemo<DataState>(
-    () => ({ loading, tasks, completions, notes, error, complete, uncomplete, poke, refresh }),
-    [loading, tasks, completions, notes, error, complete, uncomplete, poke, refresh],
+    () => ({ loading, tasks, completions, notes, online, error, complete, uncomplete, poke, refresh }),
+    [loading, tasks, completions, notes, online, error, complete, uncomplete, poke, refresh],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
