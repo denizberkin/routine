@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import type { Provider, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Profile, Slot } from '../lib/types'
 
@@ -13,6 +13,7 @@ interface AuthState {
   /** Fixed color slot per user — the earlier-created profile is u1 everywhere, for both viewers. */
   slotOf: (userId: string) => Slot
   signIn: (email: string, password: string) => Promise<string | null>
+  signInWith: (provider: Provider) => Promise<string | null>
   signOut: () => Promise<void>
 }
 
@@ -27,6 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setReady(true)
+      // The OAuth redirect lands on ?code=… (PKCE); once exchanged, drop it from the address bar.
+      if (window.location.search.includes('code=')) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+      }
     })
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next)
@@ -70,13 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? error.message : null
   }, [])
 
+  const signInWith = useCallback(async (provider: Provider) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin + import.meta.env.BASE_URL },
+    })
+    return error ? error.message : null
+  }, [])
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
   }, [])
 
   const value = useMemo<AuthState>(
-    () => ({ ready, session, me, friend, slotOf, signIn, signOut }),
-    [ready, session, me, friend, slotOf, signIn, signOut],
+    () => ({ ready, session, me, friend, slotOf, signIn, signInWith, signOut }),
+    [ready, session, me, friend, slotOf, signIn, signInWith, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
