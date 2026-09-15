@@ -4,7 +4,7 @@ Source of truth: `routine-spec.md`. Order follows spec §9. **The app is genuine
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **(user)** = manual step only the user can do (dashboards, secrets)
 
-State as of 2026-09-15: Phases 1–6 + timers built and deployed. Supabase live; grants applied; user was still seeding `profiles` (email-based `seed-profiles.sql`) and needs to run the duration migration. Next: Phase 7 calendar, then Phase 8 multipliers / bonuses / party goal / poke.
+State as of 2026-09-15: Phases 1–8 built (+ timers, emoji picker) and deployed. Remaining: Phase 9 achievements, Phase 10 polish (level-up celebration, light-mode + mobile pass). User still had to run `seed-profiles.sql` and the duration migration.
 
 ---
 
@@ -25,6 +25,10 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [x] Sign out lives in the avatar menu (tap your emoji) in every screen’s header, not on Plan.
 - [x] Plans are split into `plans/exercise.md` and `plans/rl.md` (one routine each); `routine-seed-plan.md` stays as the parser fixture.
 - [x] Timers (user request, not in spec): every task row has a `⏱` chip; length = `~N` token → number in title ("15-20 min" → 15, "Five-minute" → 5) → 25 default. Countdown persists in `localStorage`; end = notification (via `public/sw.js`, needed on Android) + beep + vibration + tab title; "Mark done" completes the task for today. `tasks.duration_min` added (`supabase/migrations/2026-09-15-task-duration.sql`).
+- [x] Party goal bonus (spec leaves the amount open) = +50 XP to each user per week hit; target = ceil(80% × scheduled × 2). Bonuses are derived (`xpSummary`), never stored.
+- [x] Multiplier uses the streak *including* the completion being paid, as of its due date — so the 7th consecutive day is already 1.25×.
+- [x] Calendar: past `!once` tasks completed on a later day are hidden (prevents double completion); "full" = every fixed task that day done.
+- [x] Avatar emoji is changeable from the avatar menu (user request); `profiles` update RLS already allows it.
 - [x] Level-up celebration + badge-unlock toasts: "seen" state in `localStorage`, keyed by user id + level/badge.
 - [x] `!once` tasks appear in Today every day of their phase window until completed.
 - [x] `recharts` not installed — spec lists it "only if needed for the stats view" and there is no stats screen in v1.
@@ -94,24 +98,24 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [ ] ✅ **Milestone: usable app.** Deploy, both users start using it.
 
 ## 7. `/calendar`
-- [ ] Month grid (date-fns), prev / next
-- [ ] Per-day: two dots (user colors) tinted by completion ratio — empty / partial / full
-- [ ] Day panel — both users' tasks for that day; own tasks checkable
-- [ ] Backfill rule — only within the last 3 days, 50% XP, reduced XP shown explicitly; older days read-only
+- [x] Month grid (date-fns), prev / next
+- [x] Per-day: two dots (user colors) tinted by completion ratio — empty / partial / full
+- [x] Day panel — both users' tasks for that day; own tasks checkable
+- [x] Backfill rule — only within the last 3 days, 50% XP, reduced XP shown explicitly; older days read-only
 - [ ] Week toggle only if it falls out for free
 
 ## 8. Gamification core
 - [ ] `src/lib/gamification.ts` — pure functions over completions:
   - [x] `levelFor(xp)` — XP needed for level N = `50·N·(N+1)`; progress to next
   - [x] `streak(days)` — ≥1 completion counts; one grace day per week; two misses in a week resets
-  - `multiplier(streak)` — ≥7 → 1.25×, ≥30 → 1.5× (applied at completion time → `xp_awarded`)
-  - `sameDayBonuses(comps)` — +15 each per day both have ≥1 completion
-  - `partyGoal(tasks, comps, week)` — combined done vs 80% of combined scheduled; bonus when hit
-- [ ] `src/lib/gamification.test.ts` — streak edge cases (grace consumed, two misses, week rollover), level thresholds, multiplier boundaries
-- [ ] Wire real level / XP bar / streak into Today header and friend card
-- [ ] "Both in today 🤝 +15" line when triggered
-- [ ] Party-goal progress bar on Today
-- [ ] Poke button — visible when friend has 0 completions today and local time ≥ 12:00; writes `day_notes`; recipient sees a one-line banner
+  - [x] `multiplier(streak)` — ≥7 → 1.25×, ≥30 → 1.5× (applied at completion time → `xp_awarded`)
+  - [x] `sameDayBonuses(comps)` — +15 each per day both have ≥1 completion
+  - [x] `partyGoal(tasks, comps, week)` — combined done vs 80% of combined scheduled; bonus when hit
+- [x] `src/lib/gamification.test.ts` — streak edge cases (grace consumed, two misses, week rollover), level thresholds, multiplier boundaries
+- [x] Wire real level / XP bar / streak into Today header and friend card
+- [x] "Both in today 🤝 +15" line when triggered
+- [x] Party-goal progress bar on Today
+- [x] Poke button — visible when friend has 0 completions today and local time ≥ 12:00; writes `day_notes`; recipient sees a one-line banner
 
 ## 9. Achievements
 - [ ] `src/lib/achievements.ts` — the 9 badges from spec §6, pure function `(tasks, completions) → Badge[]`

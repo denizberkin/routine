@@ -95,6 +95,7 @@ export default function Today() {
           notes={notes}
           day={day}
           bothToday={bothToday}
+          myDoneToday={mine.filter((t) => isDone(t, completions, me.id, day)).length}
           onPoke={poke}
         />
       )}
@@ -161,6 +162,7 @@ function FriendCard({
   notes,
   day,
   bothToday,
+  myDoneToday,
   onPoke,
 }: {
   me: Profile
@@ -172,6 +174,7 @@ function FriendCard({
   notes: DayNote[]
   day: Ymd
   bothToday: boolean
+  myDoneToday: number
   onPoke: () => void
 }) {
   const done = list.filter((t) => isDone(t, completions, friend.id, day)).length
@@ -216,7 +219,7 @@ function FriendCard({
         )}
         {pokedThem && done === 0 && <span className="ml-1 text-xs text-ink-3">Poked</span>}
       </div>
-      {(bothToday || pokedMe) && (
+      {(bothToday || (pokedMe && myDoneToday === 0)) && (
         <div className="flex flex-col gap-1 text-sm">
           {bothToday && (
             <span>
@@ -229,7 +232,7 @@ function FriendCard({
               </span>
             </span>
           )}
-          {pokedMe && done === 0 && (
+          {pokedMe && myDoneToday === 0 && (
             <span className="text-ink-2">
               {friend.avatar_emoji} {friend.display_name} poked you
             </span>
