@@ -2,8 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { subDays } from 'date-fns'
 import { useAuth } from '../auth/AuthProvider'
+import { awardFor } from '../lib/gamification'
 import { supabase } from '../lib/supabase'
-import { toYmd } from '../lib/schedule'
+import { toYmd, today } from '../lib/schedule'
 import type { Ymd } from '../lib/schedule'
 import type { Completion, DayNote, Task } from '../lib/types'
 
@@ -16,8 +17,11 @@ interface DataState {
   notes: DayNote[]
   /** One-line, auto-clearing; shown by the shell. */
   error: string | null
-  complete: (task: Task, day: Ymd, xp: number) => Promise<void>
+  /** Log a completion; XP is worked out here (streak multiplier, half for backfill). */
+  complete: (task: Task, day: Ymd) => Promise<void>
   uncomplete: (task: Task, day: Ymd) => Promise<void>
+  /** Leave today's "poke" note for the other person. */
+  poke: () => Promise<void>
   refresh: () => Promise<void>
 }
 
@@ -43,6 +47,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<DayNote[]>([])
   const [error, setErrorState] = useState<string | null>(null)
   const errorTimer = useRef<number | undefined>(undefined)
+  const latest = useRef(completions)
+  latest.current = completions
 
   const setError = useCallback((message: string | null) => {
     setErrorState(message)
@@ -121,8 +127,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const complete = useCallback(
-    async (task: Task, day: Ymd, xp: number) => {
+    async (task: Task, day: Ymd) => {
       if (!userId) return
+      const xp = awardFor(task, day, latest.current, userId, today())
       const optimistic: Completion = {
         id: `pending-${task.id}-${day}`,
         task_id: task.id,
@@ -165,9 +172,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [userId, setError],
   )
 
+  const poke = useCallback(async () => {
+    if (!userId) return
+    const { error } = await supabase
+      .from('day_notes')
+      .upsert({ user_id: userId, day: today(), body: 'poke' }, { onConflict: 'user_id,day' })
+    if (error) setError('Not sent — check your connection.')
+    else refresh()
+  }, [userId, setError, refresh])
+
   const value = useMemo<DataState>(
-    () => ({ loading, tasks, completions, notes, error, complete, uncomplete, refresh }),
-    [loading, tasks, completions, notes, error, complete, uncomplete, refresh],
+    () => ({ loading, tasks, completions, notes, error, complete, uncomplete, poke, refresh }),
+    [loading, tasks, completions, notes, error, complete, uncomplete, poke, refresh],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

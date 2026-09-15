@@ -196,7 +196,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const markDone = useCallback(() => {
     if (active) {
       const task = tasks.find((t) => t.id === active.taskId)
-      if (task) complete(task, today(), task.xp)
+      if (task) complete(task, today())
     }
     dismiss()
   }, [active, tasks, complete, dismiss])

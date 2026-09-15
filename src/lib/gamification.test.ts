@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { levelFor, stepXp, streak, totalXp } from './gamification'
+import { awardFor, levelFor, multiplier, sameDays, stepXp, streak, totalXp, xpSummary } from './gamification'
 import type { Completion } from './types'
 
 const on = (days: string[], user_id = 'me'): Completion[] =>
@@ -72,5 +72,40 @@ describe('streak', () => {
 
   it('ignores the other user', () => {
     expect(streak(on(['2026-09-16'], 'friend'), 'me', '2026-09-16')).toBe(0)
+  })
+})
+
+describe('multiplier + award', () => {
+  it('steps at 7 and 30', () => {
+    expect([0, 6, 7, 29, 30].map(multiplier)).toEqual([1, 1, 1.25, 1.25, 1.5])
+  })
+
+  it('counts the completion itself toward the streak it is paid at', () => {
+    const task = { id: 't', xp: 10 }
+    // six days done, today would be the 7th → 1.25× on today's first completion
+    const six = on(['2026-09-10', '2026-09-11', '2026-09-12', '2026-09-13', '2026-09-14', '2026-09-15'])
+    expect(awardFor(task, '2026-09-16', six, 'me', '2026-09-16')).toBe(13)
+    expect(awardFor(task, '2026-09-16', [], 'me', '2026-09-16')).toBe(10)
+  })
+
+  it('halves backfilled days, after the multiplier', () => {
+    const task = { id: 't', xp: 10 }
+    expect(awardFor(task, '2026-09-15', [], 'me', '2026-09-16')).toBe(5)
+    const six = on(['2026-09-09', '2026-09-10', '2026-09-11', '2026-09-12', '2026-09-13', '2026-09-14'])
+    expect(awardFor(task, '2026-09-15', six, 'me', '2026-09-16')).toBe(6) // 10 × 1.25 × 0.5 = 6.25 → 6
+  })
+})
+
+describe('co-op', () => {
+  it('finds days both were active', () => {
+    const cs = [...on(['2026-09-14', '2026-09-15', '2026-09-16']), ...on(['2026-09-15', '2026-09-17'], 'friend')]
+    expect(sameDays(cs, 'me', 'friend')).toEqual(['2026-09-15'])
+  })
+
+  it('adds bonuses into the xp summary', () => {
+    const cs = [...on(['2026-09-15']), ...on(['2026-09-15'], 'friend')]
+    const s = xpSummary([], cs, 'me', 'friend', '2026-09-16')
+    expect(s).toEqual({ base: 10, sameDayBonus: 15, partyBonus: 0, total: 25 })
+    expect(xpSummary([], cs, 'me', null, '2026-09-16').total).toBe(10)
   })
 })

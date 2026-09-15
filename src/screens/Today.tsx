@@ -7,15 +7,25 @@ import TaskRow from '../components/TaskRow'
 import { useData } from '../data/DataProvider'
 import { useTimer } from '../data/TimerProvider'
 import { useToday } from '../data/useToday'
-import { levelFor, streak, totalXp } from '../lib/gamification'
-import { doneThisWeek, dueList, isDone, weeklyQuota } from '../lib/schedule'
-import { formatClock, formatMinutes, resolveMinutes } from '../lib/timer'
+import {
+  PARTY_BONUS,
+  SAME_DAY_BONUS,
+  awardFor,
+  levelFor,
+  multiplier,
+  partyWeek,
+  sameDays,
+  streak,
+  xpSummary,
+} from '../lib/gamification'
+import { doneThisWeek, dueList, isDone, weekOf, weeklyQuota } from '../lib/schedule'
 import type { Ymd } from '../lib/schedule'
-import type { Completion, Profile, Task } from '../lib/types'
+import { formatClock, formatMinutes, resolveMinutes } from '../lib/timer'
+import type { Completion, DayNote, Profile, Task } from '../lib/types'
 
 export default function Today() {
   const { me, friend, slotOf } = useAuth()
-  const { loading, tasks, completions, complete, uncomplete } = useData()
+  const { loading, tasks, completions, notes, complete, uncomplete, poke } = useData()
   const timer = useTimer()
   const day = useToday()
 
@@ -29,8 +39,13 @@ export default function Today() {
 
   if (!me) return null
   const color = `var(--${slotOf(me.id)})`
-  const level = levelFor(totalXp(completions, me.id))
+  const friendColor = friend ? `var(--${slotOf(friend.id)})` : color
+  const xp = xpSummary(tasks, completions, me.id, friend?.id ?? null, day)
+  const level = levelFor(xp.total)
   const fire = streak(completions, me.id, day)
+  const mult = multiplier(fire)
+  const bothToday = friend ? sameDays(completions, me.id, friend.id).includes(day) : false
+  const party = friend && tasks.length ? partyWeek(tasks, completions, weekOf(day).start) : null
 
   return (
     <div className="flex flex-col gap-5">
@@ -58,19 +73,33 @@ export default function Today() {
           <span>
             {level.into} / {level.need} XP
           </span>
-          <span>🔥 {fire}</span>
+          <span>
+            🔥 {fire}
+            {mult > 1 && (
+              <span className="ml-1.5 font-semibold" style={{ color }}>
+                ×{mult}
+              </span>
+            )}
+          </span>
         </div>
       </header>
 
       {friend && (
         <FriendCard
+          me={me}
           friend={friend}
-          color={`var(--${slotOf(friend.id)})`}
+          color={friendColor}
+          myColor={color}
           list={dueList(tasks, completions, friend.id, day)}
           completions={completions}
+          notes={notes}
           day={day}
+          bothToday={bothToday}
+          onPoke={poke}
         />
       )}
+
+      {party && party.target > 0 && <PartyBar party={party} a={color} b={friendColor} />}
 
       {loading ? null : tasks.length === 0 ? (
         <div className="flex flex-col items-center gap-4 pt-16 text-center">
@@ -107,10 +136,10 @@ export default function Today() {
                           ? 'once'
                           : undefined
                     }
-                    xp={awarded ?? task.xp}
+                    xp={awarded ?? awardFor(task, day, completions, me.id, day)}
                     done={done}
                     color={color}
-                    onToggle={() => (done ? uncomplete(task, day) : complete(task, day, task.xp))}
+                    onToggle={() => (done ? uncomplete(task, day) : complete(task, day))}
                   />
                 )
               })}
@@ -123,43 +152,116 @@ export default function Today() {
 }
 
 function FriendCard({
+  me,
   friend,
   color,
+  myColor,
   list,
   completions,
+  notes,
   day,
+  bothToday,
+  onPoke,
 }: {
+  me: Profile
   friend: Profile
   color: string
+  myColor: string
   list: Task[]
   completions: Completion[]
+  notes: DayNote[]
   day: Ymd
+  bothToday: boolean
+  onPoke: () => void
 }) {
   const done = list.filter((t) => isDone(t, completions, friend.id, day)).length
   const fire = streak(completions, friend.id, day)
+  const pokedThem = notes.some((n) => n.user_id === me.id && n.day === day && n.body === 'poke')
+  const pokedMe = notes.some((n) => n.user_id === friend.id && n.day === day && n.body === 'poke')
+  const canPoke = done === 0 && list.length > 0 && new Date().getHours() >= 12 && !pokedThem
+
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3">
-      <span className="text-[22px] leading-none" aria-hidden>
-        {friend.avatar_emoji}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold">{friend.display_name}</div>
-        {list.length > 0 && (
-          <div className="mt-1.5 flex gap-1" aria-hidden>
-            {list.map((t) => (
-              <span
-                key={t.id}
-                className="h-1.5 w-4 rounded-full transition-colors duration-300"
-                style={{ background: isDone(t, completions, friend.id, day) ? color : 'var(--surface-2)' }}
-              />
-            ))}
-          </div>
+    <div className="flex flex-col gap-2.5 rounded-2xl bg-surface px-4 py-3">
+      <div className="flex items-center gap-3">
+        <span className="text-[22px] leading-none" aria-hidden>
+          {friend.avatar_emoji}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold">{friend.display_name}</div>
+          {list.length > 0 && (
+            <div className="mt-1.5 flex gap-1" aria-hidden>
+              {list.map((t) => (
+                <span
+                  key={t.id}
+                  className="h-1.5 w-4 rounded-full transition-colors duration-300"
+                  style={{ background: isDone(t, completions, friend.id, day) ? color : 'var(--surface-2)' }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        <span className="text-sm font-semibold tabular-nums" style={{ color }}>
+          {done}/{list.length}
+        </span>
+        <span className="text-sm tabular-nums text-ink-2">🔥 {fire}</span>
+        {canPoke && (
+          <button
+            type="button"
+            onClick={onPoke}
+            className="ml-1 h-8 rounded-full px-3 text-xs font-semibold text-ground"
+            style={{ background: myColor }}
+          >
+            Poke
+          </button>
         )}
+        {pokedThem && done === 0 && <span className="ml-1 text-xs text-ink-3">Poked</span>}
       </div>
-      <span className="text-sm font-semibold tabular-nums" style={{ color }}>
-        {done}/{list.length}
-      </span>
-      <span className="text-sm tabular-nums text-ink-2">🔥 {fire}</span>
+      {(bothToday || pokedMe) && (
+        <div className="flex flex-col gap-1 text-sm">
+          {bothToday && (
+            <span>
+              Both in today 🤝{' '}
+              <span
+                className="font-semibold"
+                style={{ background: `linear-gradient(90deg, ${myColor}, ${color})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}
+              >
+                +{SAME_DAY_BONUS}
+              </span>
+            </span>
+          )}
+          {pokedMe && done === 0 && (
+            <span className="text-ink-2">
+              {friend.avatar_emoji} {friend.display_name} poked you
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PartyBar({ party, a, b }: { party: ReturnType<typeof partyWeek>; a: string; b: string }) {
+  const pct = Math.min(100, (party.done / party.target) * 100)
+  return (
+    <div className="px-1">
+      <div className="flex items-baseline justify-between text-xs text-ink-2">
+        <span>This week together</span>
+        <span className="tabular-nums">
+          {party.hit ? (
+            <span className="font-semibold text-ink">Goal hit +{PARTY_BONUS}</span>
+          ) : (
+            <>
+              {party.done} / {party.target}
+            </>
+          )}
+        </span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
+        <div
+          className="h-full rounded-full transition-[width] duration-500 ease-out"
+          style={{ width: `${Math.max(party.done ? 3 : 0, pct)}%`, background: `linear-gradient(90deg, ${a}, ${b})` }}
+        />
+      </div>
     </div>
   )
 }

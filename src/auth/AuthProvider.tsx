@@ -17,6 +17,8 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<string | null>
   signInWith: (provider: Provider) => Promise<string | null>
   signOut: () => Promise<void>
+  /** Change your own avatar emoji; returns an error message or null. */
+  setAvatar: (emoji: string) => Promise<string | null>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -95,9 +97,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut()
   }, [])
 
+  const setAvatar = useCallback(
+    async (emoji: string) => {
+      const id = session?.user.id
+      if (!id) return 'Not signed in'
+      const previous = profiles
+      setProfiles((ps) => ps.map((p) => (p.id === id ? { ...p, avatar_emoji: emoji } : p)))
+      const { error } = await supabase.from('profiles').update({ avatar_emoji: emoji }).eq('id', id)
+      if (error) {
+        setProfiles(previous)
+        return error.message
+      }
+      return null
+    },
+    [session, profiles],
+  )
+
   const value = useMemo<AuthState>(
-    () => ({ ready, session, me, friend, profileError, slotOf, signIn, signInWith, signOut }),
-    [ready, session, me, friend, profileError, slotOf, signIn, signInWith, signOut],
+    () => ({ ready, session, me, friend, profileError, slotOf, signIn, signInWith, signOut, setAvatar }),
+    [ready, session, me, friend, profileError, slotOf, signIn, signInWith, signOut, setAvatar],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

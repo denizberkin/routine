@@ -13,27 +13,29 @@ interface Props {
   timerActive?: boolean
   onTimer?: () => void
   disabled?: boolean
-  onToggle: () => void
+  /** Display only (the other person's row, or a day you can't change) */
+  readOnly?: boolean
+  onToggle?: () => void
 }
 
 /** One task. The row is the checkbox; the small chip on the right opens a timer for it. */
-export default function TaskRow({ title, meta, xp, done, color, timerLabel, timerActive, onTimer, disabled, onToggle }: Props) {
+export default function TaskRow({ title, meta, xp, done, color, timerLabel, timerActive, onTimer, disabled, readOnly, onToggle }: Props) {
   const [floating, setFloating] = useState(0)
 
   function toggle() {
     if (!done) setFloating((n) => n + 1)
-    onToggle()
+    onToggle?.()
   }
+
+  const Row: 'div' | 'button' = readOnly ? 'div' : 'button'
 
   return (
     <div className="flex items-center gap-1 pr-2">
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={done}
-        disabled={disabled}
-        onClick={toggle}
-        className="flex min-w-0 flex-1 items-center gap-3.5 rounded-row px-2 py-3 text-left transition-colors active:bg-surface disabled:opacity-50"
+      <Row
+        {...(readOnly
+          ? {}
+          : { type: 'button' as const, role: 'checkbox', 'aria-checked': done, disabled, onClick: toggle })}
+        className={`flex min-w-0 flex-1 items-center gap-3.5 rounded-row px-2 py-3 text-left transition-colors disabled:opacity-50 ${readOnly ? '' : 'active:bg-surface'}`}
       >
         <span
           aria-hidden
@@ -52,7 +54,7 @@ export default function TaskRow({ title, meta, xp, done, color, timerLabel, time
           </span>
           {meta && <span className="block text-xs text-ink-3">{meta}</span>}
         </span>
-      </button>
+      </Row>
 
       {onTimer && timerLabel && (
         <button
