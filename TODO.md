@@ -4,7 +4,7 @@ Source of truth: `routine-spec.md`. Order follows spec §9. **The app is genuine
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **(user)** = manual step only the user can do (dashboards, secrets)
 
-State as of 2026-09-15: Phases 1, 2, 4 done and deployed (shell + login + plan screen live at https://denizberkin.github.io/routine/); `schedule.ts` from Phase 5 done. Pages source is set to GitHub Actions. **Blocked on Phase 3** (user: Supabase project, users, secrets) — after that: verify login + plan save end-to-end, then build Today.
+State as of 2026-09-15: Phases 1–6 built and deployed; Supabase project live with both users. Login (email + Google/GitHub) works. Pending user checks: plan save on `/plan` (was silently failing when the profile row was missing — now surfaces an error) and first real completions. Next: Phase 7 calendar, then the rest of Phase 8.
 
 ---
 
@@ -21,6 +21,9 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [x] Timezone: no per-user tz in schema → use the viewer's local time for "past midday", "before 07:00", and `due_date`.
 - [x] Multiplier is based on streak as of the completion's `due_date`; backfill halves after multiplier; round to int; stored in `xp_awarded`.
 - [x] Same-day bonus (+15) and party-goal bonus are **derived client-side**, not stored — XP is always `sum(xp_awarded) + derived bonuses`.
+- [x] Streak: a grace day keeps the run alive but doesn’t add to the count; today never counts against you until it’s over. Level thresholds are per-step (L1→L2 100, L2→L3 300 …), i.e. cumulative 100 / 400 / 1000.
+- [x] Sign out lives in the avatar menu (tap your emoji) in every screen’s header, not on Plan.
+- [x] Plans are split into `plans/exercise.md` and `plans/rl.md` (one routine each); `routine-seed-plan.md` stays as the parser fixture.
 - [x] Level-up celebration + badge-unlock toasts: "seen" state in `localStorage`, keyed by user id + level/badge.
 - [x] `!once` tasks appear in Today every day of their phase window until completed.
 - [x] `recharts` not installed — spec lists it "only if needed for the stats view" and there is no stats screen in v1.
@@ -40,7 +43,7 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [x] `.github/workflows/deploy.yml` — verbatim from spec §8
 - [x] `supabase/schema.sql` — tables, indexes, RLS from spec §3 (versioned even though it's run by hand)
 - [x] **(user)** GitHub → Settings → Pages → Source: **GitHub Actions**
-- [ ] **(user)** GitHub → Settings → Secrets → `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (placeholders OK until Phase 3)
+- [x] **(user)** GitHub → Settings → Secrets → `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (placeholders OK until Phase 3)
 - [x] Initial commit, push `main` → confirm blank app renders at https://denizberkin.github.io/routine/ and that `#/calendar` etc. survive a refresh
 
 ## 2. Auth
@@ -52,11 +55,11 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [x] After login: load both `profiles` rows → `me` and `friend` in context
 
 ## 3. Schema + users (mostly user)
-- [ ] **(user)** Create Supabase project (free tier); run `supabase/schema.sql` in the SQL editor
-- [ ] **(user)** Auth → Providers → disable public signups; turn off email confirmation
-- [ ] **(user)** Auth → Users → add both users (email + password)
+- [x] **(user)** Create Supabase project (free tier); run `supabase/schema.sql` in the SQL editor
+- [x] **(user)** Auth → Providers → disable public signups; turn off email confirmation
+- [x] **(user)** Auth → Users → add both users (email + password)
 - [x] `supabase/seed-profiles.sql` — template `insert into profiles (id, display_name, avatar_emoji)` with placeholders → **(user)** fill ids and run
-- [ ] **(user)** Put real URL + anon key into `.env.local` and the GitHub secrets
+- [x] **(user)** Put real URL + anon key into `.env.local` and the GitHub secrets
 - [ ] Verify: both users can log in locally; `select * from profiles` returns 2 rows; a user cannot insert a completion with someone else's `user_id`
 
 ## 4. Markdown parser + `/plan`
@@ -75,18 +78,18 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 
 ## 5. `/` Today
 - [x] `src/lib/schedule.ts` — `isDueOn`, `weekOf` (ISO), `doneThisWeek`, `scheduledInWeek`, `dayStatus`, `canBackfill`; tests
-- [ ] Data hook — active routines' tasks + all completions for both users (2 users → small, load all; refine later if needed)
-- [ ] Today screen — header (level badge, XP bar, 🔥 streak — stub values until Phase 8), tasks grouped by category, large tappable rows with checkbox
-- [ ] `@weekly:N` rows show "2/4 this week", checkable any day of the week
-- [ ] `!once` rows shown until completed
-- [ ] Complete / uncomplete = optimistic insert / delete on `completions`, rollback on error, no spinner
-- [ ] XP total = `sum(xp_awarded)` (multipliers/bonuses come in Phase 8)
-- [ ] Empty state = one line + button to `/plan`
+- [x] Data hook — active routines' tasks + all completions for both users (2 users → small, load all; refine later if needed)
+- [x] Today screen — header (level badge, XP bar, 🔥 streak — stub values until Phase 8), tasks grouped by category, large tappable rows with checkbox
+- [x] `@weekly:N` rows show "2/4 this week", checkable any day of the week
+- [x] `!once` rows shown until completed
+- [x] Complete / uncomplete = optimistic insert / delete on `completions`, rollback on error, no spinner
+- [x] XP total = `sum(xp_awarded)` (multipliers/bonuses come in Phase 8)
+- [x] Empty state = one line + button to `/plan`
 
 ## 6. Realtime
-- [ ] Subscribe to `postgres_changes` on `completions` + `day_notes`; merge into local state
-- [ ] Friend card on Today — "Friend: 2/4 done 🔥 6", updates live
-- [ ] Refetch on window focus / reconnect as a safety net
+- [x] Subscribe to `postgres_changes` on `completions` + `day_notes`; merge into local state
+- [x] Friend card on Today — "Friend: 2/4 done 🔥 6", updates live
+- [x] Refetch on window focus / reconnect as a safety net
 - [ ] ✅ **Milestone: usable app.** Deploy, both users start using it.
 
 ## 7. `/calendar`
@@ -98,8 +101,8 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 
 ## 8. Gamification core
 - [ ] `src/lib/gamification.ts` — pure functions over completions:
-  - `levelFor(xp)` — XP needed for level N = `50·N·(N+1)`; progress to next
-  - `streak(days)` — ≥1 completion counts; one grace day per week; two misses in a week resets
+  - [x] `levelFor(xp)` — XP needed for level N = `50·N·(N+1)`; progress to next
+  - [x] `streak(days)` — ≥1 completion counts; one grace day per week; two misses in a week resets
   - `multiplier(streak)` — ≥7 → 1.25×, ≥30 → 1.5× (applied at completion time → `xp_awarded`)
   - `sameDayBonuses(comps)` — +15 each per day both have ≥1 completion
   - `partyGoal(tasks, comps, week)` — combined done vs 80% of combined scheduled; bonus when hit
