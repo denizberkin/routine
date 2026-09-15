@@ -4,56 +4,58 @@ Source of truth: `routine-spec.md`. Order follows spec §9. **The app is genuine
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **(user)** = manual step only the user can do (dashboards, secrets)
 
-State as of 2026-09-15: empty repo, no commits, remote `origin` = github.com/denizberkin/routine, branch `main`.
+State as of 2026-09-15: Phases 1–2 done and deployed (blank shell + login live at https://denizberkin.github.io/routine/). Pages source is set to GitHub Actions. Waiting on the user for Phase 3 (Supabase project + secrets).
 
 ---
 
 ## 0. Decisions & defaults
 
 Spec **[DECISION]** items — defaults adopted; ask the user before deviating:
-- [ ] Calendar default view = month. Week toggle only if trivial, otherwise skip.
-- [ ] Weekly party goal target = 80% of combined scheduled tasks.
-- [ ] Poke = write a `day_notes` row owned by the poker (RLS only allows own writes); the other user sees it on next load / via realtime. No push.
+- [x] Calendar default view = month. Week toggle only if trivial, otherwise skip.
+- [x] Weekly party goal target = 80% of combined scheduled tasks.
+- [x] Poke = write a `day_notes` row owned by the poker (RLS only allows own writes); the other user sees it on next load / via realtime. No push.
 
 Under-specified behaviors — defaults chosen so they aren't re-decided. Update here if changed:
-- [ ] Week boundary (streak grace day, `@weekly:N` quota, party goal) = ISO week, Mon–Sun.
-- [ ] "Scheduled tasks" for the party goal: `@daily` × 7, `@days` × matching days, `@weekly:N` → N, `!once` → excluded.
-- [ ] Timezone: no per-user tz in schema → use the viewer's local time for "past midday", "before 07:00", and `due_date`.
-- [ ] Multiplier is based on streak as of the completion's `due_date`; backfill halves after multiplier; round to int; stored in `xp_awarded`.
-- [ ] Same-day bonus (+15) and party-goal bonus are **derived client-side**, not stored — XP is always `sum(xp_awarded) + derived bonuses`.
-- [ ] Level-up celebration + badge-unlock toasts: "seen" state in `localStorage`, keyed by user id + level/badge.
-- [ ] `!once` tasks appear in Today every day of their phase window until completed.
-- [ ] `recharts` not installed — spec lists it "only if needed for the stats view" and there is no stats screen in v1.
+- [x] Week boundary (streak grace day, `@weekly:N` quota, party goal) = ISO week, Mon–Sun.
+- [x] "Scheduled tasks" for the party goal: `@daily` × 7, `@days` × matching days, `@weekly:N` → N, `!once` → excluded.
+- [x] Timezone: no per-user tz in schema → use the viewer's local time for "past midday", "before 07:00", and `due_date`.
+- [x] Multiplier is based on streak as of the completion's `due_date`; backfill halves after multiplier; round to int; stored in `xp_awarded`.
+- [x] Same-day bonus (+15) and party-goal bonus are **derived client-side**, not stored — XP is always `sum(xp_awarded) + derived bonuses`.
+- [x] Level-up celebration + badge-unlock toasts: "seen" state in `localStorage`, keyed by user id + level/badge.
+- [x] `!once` tasks appear in Today every day of their phase window until completed.
+- [x] `recharts` not installed — spec lists it "only if needed for the stats view" and there is no stats screen in v1.
+- [x] User color slot: profiles ordered by `created_at` — first is `u1` (marigold), second is `u2` (lilac). Same for both viewers.
+- [x] Toolchain: Vite 8 / React 19 / TS 6 (template defaults; spec says React 18, nothing depends on it). Workflow runs Node 22, not 20 — Vitest 5 needs ≥22.
+- [x] `schema.sql` also adds `completions` + `day_notes` to the `supabase_realtime` publication, so no separate dashboard step for realtime.
 
 ---
 
 ## 1. Scaffold + deploy (blank app live at the URL)
-- [ ] `npm create vite@latest` (react-ts) into this dir — keep existing `*.md`, `.gitignore`, `junk/`
-- [ ] Deps: `react-router-dom`, `@supabase/supabase-js`, `date-fns`, `tailwindcss` + `@tailwindcss/vite`; dev: `vitest`
-- [ ] `vite.config.ts` → `base: '/routine/'`
-- [ ] Tailwind: dark default via `prefers-color-scheme` (`media`), system font stack, two fixed user colors as theme tokens
-- [ ] `HashRouter` with placeholder routes `/login`, `/`, `/calendar`, `/plan`
-- [ ] `.env.example` (URL + anon key); extend `.gitignore` with `node_modules/`, `dist/`, `.env.local`
-- [ ] `.github/workflows/deploy.yml` — verbatim from spec §8
-- [ ] `supabase/schema.sql` — tables, indexes, RLS from spec §3 (versioned even though it's run by hand)
-- [ ] **(user)** GitHub → Settings → Pages → Source: **GitHub Actions**
+- [x] `npm create vite@latest` (react-ts) into this dir — keep existing `*.md`, `.gitignore`, `junk/`
+- [x] Deps: `react-router-dom`, `@supabase/supabase-js`, `date-fns`, `tailwindcss` + `@tailwindcss/vite`; dev: `vitest`
+- [x] `vite.config.ts` → `base: '/routine/'`
+- [x] Tailwind: dark default via `prefers-color-scheme` (`media`), system font stack, two fixed user colors as theme tokens
+- [x] `HashRouter` with placeholder routes `/login`, `/`, `/calendar`, `/plan`
+- [x] `.env.example` (URL + anon key); extend `.gitignore` with `node_modules/`, `dist/`, `.env.local`
+- [x] `.github/workflows/deploy.yml` — verbatim from spec §8
+- [x] `supabase/schema.sql` — tables, indexes, RLS from spec §3 (versioned even though it's run by hand)
+- [x] **(user)** GitHub → Settings → Pages → Source: **GitHub Actions**
 - [ ] **(user)** GitHub → Settings → Secrets → `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (placeholders OK until Phase 3)
-- [ ] Initial commit, push `main` → confirm blank app renders at https://denizberkin.github.io/routine/ and that `#/calendar` etc. survive a refresh
+- [x] Initial commit, push `main` → confirm blank app renders at https://denizberkin.github.io/routine/ and that `#/calendar` etc. survive a refresh
 
 ## 2. Auth
-- [ ] `src/lib/supabase.ts` — client from `import.meta.env.VITE_*`, fail loudly if missing
-- [ ] `AuthProvider` — session state, `onAuthStateChange`, persisted session (default localStorage)
-- [ ] `/login` — email + password, single centered card, inline error line, **no signup link**
-- [ ] `RequireAuth` — unauthenticated → `/login`; authenticated visiting `/login` → `/`
-- [ ] Small sign-out affordance in the header
-- [ ] After login: load both `profiles` rows → `me` and `friend` in context
+- [x] `src/lib/supabase.ts` — client from `import.meta.env.VITE_*`, fail loudly if missing
+- [x] `AuthProvider` — session state, `onAuthStateChange`, persisted session (default localStorage)
+- [x] `/login` — email + password, single centered card, inline error line, **no signup link**
+- [x] `RequireAuth` — unauthenticated → `/login`; authenticated visiting `/login` → `/`
+- [x] Small sign-out affordance in the header
+- [x] After login: load both `profiles` rows → `me` and `friend` in context
 
 ## 3. Schema + users (mostly user)
 - [ ] **(user)** Create Supabase project (free tier); run `supabase/schema.sql` in the SQL editor
 - [ ] **(user)** Auth → Providers → disable public signups; turn off email confirmation
 - [ ] **(user)** Auth → Users → add both users (email + password)
-- [ ] `supabase/seed-profiles.sql` — template `insert into profiles (id, display_name, avatar_emoji)` with placeholders → **(user)** fill ids and run
-- [ ] **(user)** Database → Replication (or Realtime) → enable for `completions` and `day_notes`
+- [x] `supabase/seed-profiles.sql` — template `insert into profiles (id, display_name, avatar_emoji)` with placeholders → **(user)** fill ids and run
 - [ ] **(user)** Put real URL + anon key into `.env.local` and the GitHub secrets
 - [ ] Verify: both users can log in locally; `select * from profiles` returns 2 rows; a user cannot insert a completion with someone else's `user_id`
 

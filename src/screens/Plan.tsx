@@ -1,17 +1,269 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { format, parseISO } from 'date-fns'
 import { useAuth } from '../auth/AuthProvider'
+import { describeRecurrence, parseRoutine } from '../lib/parser'
+import type { ParsedRoutine, ParsedTask } from '../lib/parser'
+import { listRoutines, saveRoutine, setRoutineActive } from '../lib/routines'
+import type { Routine } from '../lib/types'
+
+type RoutineRow = Routine & { task_count: number }
+
+const day = (d: string) => format(parseISO(d), 'd MMM')
 
 export default function Plan() {
-  const { signOut } = useAuth()
+  const { me, friend, slotOf, signOut } = useAuth()
+  const [md, setMd] = useState('')
+  const [parsed, setParsed] = useState<ParsedRoutine | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [routines, setRoutines] = useState<RoutineRow[]>([])
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const refresh = () => listRoutines().then(setRoutines).catch(() => {})
+  useEffect(() => {
+    refresh()
+  }, [])
+
+  const editing = useMemo(() => routines.find((r) => r.id === editingId) ?? null, [routines, editingId])
+  const myColor = me ? `var(--${slotOf(me.id)})` : 'var(--ink)'
+
+  function parse() {
+    setParsed(parseRoutine(md))
+    setSaveState('idle')
+    setSaveError(null)
+  }
+
+  async function save() {
+    if (!parsed || !me) return
+    setSaveState('saving')
+    setSaveError(null)
+    try {
+      const id = await saveRoutine(parsed, md, me.id, editingId)
+      setEditingId(id)
+      setSaveState('saved')
+      refresh()
+    } catch (e) {
+      setSaveState('idle')
+      setSaveError(e instanceof Error ? e.message : 'Could not save.')
+    }
+  }
+
+  function load(r: RoutineRow) {
+    setMd(r.source_markdown)
+    setParsed(null)
+    setSaveState('idle')
+    setEditingId(r.owner_id === me?.id ? r.id : null)
+    textareaRef.current?.focus()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function toggle(r: RoutineRow) {
+    setRoutines((rs) => rs.map((x) => (x.id === r.id ? { ...x, is_active: !r.is_active } : x)))
+    try {
+      await setRoutineActive(r.id, !r.is_active)
+    } catch {
+      refresh()
+    }
+  }
+
+  const canSave = parsed !== null && parsed.tasks.length > 0 && parsed.errors.length === 0
+
   return (
-    <div className="flex min-h-[70dvh] flex-col">
-      <p className="pt-24 text-center text-ink-2">Paste a plan to get started.</p>
+    <div className="flex flex-col gap-6">
+      <header className="flex items-baseline justify-between">
+        <h1 className="text-[22px] font-bold tracking-tight">Plan</h1>
+        {editing && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null)
+              setParsed(null)
+            }}
+            className="text-sm text-ink-2"
+          >
+            Editing {editing.title} <span className="ml-1 text-ink-3">×</span>
+          </button>
+        )}
+      </header>
+
+      <textarea
+        ref={textareaRef}
+        value={md}
+        onChange={(e) => {
+          setMd(e.target.value)
+          setParsed(null)
+        }}
+        placeholder="Paste your plan"
+        spellCheck={false}
+        className="min-h-[38dvh] w-full resize-y rounded-2xl bg-surface p-4 font-mono text-[13px] leading-relaxed text-ink placeholder:text-ink-3"
+      />
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={parse}
+          disabled={!md.trim()}
+          className="h-12 flex-1 rounded-xl bg-surface-2 font-semibold text-ink transition-opacity disabled:opacity-40"
+        >
+          Parse
+        </button>
+        {parsed && (
+          <button
+            type="button"
+            onClick={save}
+            disabled={!canSave || saveState === 'saving'}
+            className="h-12 flex-1 rounded-xl bg-ink font-semibold text-ground transition-opacity disabled:opacity-40"
+          >
+            {saveState === 'saved' ? 'Saved' : editingId ? 'Save changes' : 'Save routine'}
+          </button>
+        )}
+      </div>
+      {saveError && <p className="-mt-3 text-sm text-danger">{saveError}</p>}
+
+      {parsed && parsed.errors.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {parsed.errors.map((e, i) => (
+            <li key={i} className="rounded-xl border border-danger/30 px-3 py-2 text-sm">
+              <span className="font-semibold text-danger">Line {e.line}</span>
+              <span className="text-ink-2"> {e.message}</span>
+              {e.text && (
+                <div className="mt-1 truncate font-mono text-xs text-ink-3">{e.text}</div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {parsed && parsed.tasks.length > 0 && (
+        <Preview parsed={parsed} color={myColor} />
+      )}
+
+      {routines.length > 0 && (
+        <section className="flex flex-col gap-1">
+          <h2 className="mb-1 text-sm font-semibold text-ink-2">Routines</h2>
+          {routines.map((r) => {
+            const mine = r.owner_id === me?.id
+            const owner = mine ? me : friend
+            return (
+              <div key={r.id} className="flex items-center gap-3 rounded-xl py-2">
+                <span className="text-xl" aria-hidden>
+                  {owner?.avatar_emoji ?? '·'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => load(r)}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <div className={`truncate font-semibold ${r.is_active ? 'text-ink' : 'text-ink-3'}`}>
+                    {r.title}
+                  </div>
+                  <div className="text-xs text-ink-3">{r.task_count} tasks</div>
+                </button>
+                <Switch
+                  on={r.is_active}
+                  disabled={!mine}
+                  color={`var(--${slotOf(r.owner_id)})`}
+                  onChange={() => toggle(r)}
+                  label={`${r.title} active`}
+                />
+              </div>
+            )
+          })}
+        </section>
+      )}
+
       <button
         type="button"
         onClick={signOut}
-        className="mt-auto self-center py-3 text-sm text-ink-3 hover:text-ink-2"
+        className="mt-6 self-center py-3 text-sm text-ink-3 hover:text-ink-2"
       >
         Sign out
       </button>
     </div>
+  )
+}
+
+function Preview({ parsed, color }: { parsed: ParsedRoutine; color: string }) {
+  const phases = useMemo(() => {
+    const out: { phase: string | null; window: string; groups: Map<string, ParsedTask[]> }[] = []
+    for (const t of parsed.tasks) {
+      let p = out.at(-1)
+      if (!p || p.phase !== t.phase) {
+        p = {
+          phase: t.phase,
+          window: t.ends_on ? `${day(t.starts_on)} – ${day(t.ends_on)}` : `from ${day(t.starts_on)}`,
+          groups: new Map(),
+        }
+        out.push(p)
+      }
+      p.groups.set(t.category, [...(p.groups.get(t.category) ?? []), t])
+    }
+    return out
+  }, [parsed])
+
+  return (
+    <section className="flex flex-col gap-5">
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-semibold">{parsed.title}</h2>
+        <span className="text-sm text-ink-2">{parsed.tasks.length} tasks</span>
+      </div>
+      {phases.map((p, i) => (
+        <div key={i} className="flex flex-col gap-3">
+          <div className="flex items-baseline justify-between gap-3 border-b border-line pb-1.5">
+            <span className="font-semibold">{p.phase ?? 'No phase'}</span>
+            <span className="shrink-0 text-xs text-ink-2">{p.window}</span>
+          </div>
+          {[...p.groups].map(([category, tasks]) => (
+            <div key={category}>
+              <div className="mb-1 text-xs font-semibold text-ink-2">{category}</div>
+              <ul className="flex flex-col">
+                {tasks.map((t) => (
+                  <li key={t.line} className="flex items-baseline gap-3 py-1 text-sm">
+                    <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                    <span className="shrink-0 text-xs text-ink-3">{describeRecurrence(t.recurrence)}</span>
+                    <span className="w-9 shrink-0 text-right text-xs font-semibold tabular-nums" style={{ color }}>
+                      +{t.xp}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ))}
+    </section>
+  )
+}
+
+function Switch({
+  on,
+  disabled,
+  color,
+  onChange,
+  label,
+}: {
+  on: boolean
+  disabled?: boolean
+  color: string
+  onChange: () => void
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onChange}
+      className="relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40"
+      style={{ background: on ? color : 'var(--surface-2)' }}
+    >
+      <span
+        className="absolute top-1 size-5 rounded-full bg-white shadow-sm transition-[left]"
+        style={{ left: on ? 'calc(100% - 1.5rem)' : '0.25rem' }}
+      />
+    </button>
   )
 }
