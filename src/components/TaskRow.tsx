@@ -42,7 +42,7 @@ export default function TaskRow({ title, meta, xp, done, color, disabled, onTogg
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className={`block truncate text-[17px] font-medium leading-6 transition-colors duration-200 ${done ? 'text-ink-3' : 'text-ink'}`}>
+        <span className={`block line-clamp-2 text-[17px] font-medium leading-6 transition-colors duration-200 ${done ? 'text-ink-3' : 'text-ink'}`}>
           {title}
         </span>
         {meta && <span className="block text-xs text-ink-3">{meta}</span>}
