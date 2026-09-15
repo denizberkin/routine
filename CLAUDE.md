@@ -11,7 +11,7 @@ Two-person gamified accountability / routine tracker. Static React SPA on GitHub
 - `vite.config.ts` has `base: '/routine/'`. Router is **HashRouter** — never BrowserRouter.
 - Real Supabase Auth + RLS. The anon key in the bundle is correct and expected. **Never** put the `service_role` key anywhere client-side.
 - XP, level, streak, multipliers, bonuses are **derived client-side from `completions`**. No denormalized counters in the DB.
-- Markdown is the only way to edit tasks. No task-editing UI.
+- Markdown is the only way to edit tasks. No task-editing UI. Grammar = spec §5 plus one addition: `~N` (timer minutes, e.g. `~15`).
 - Re-saving a routine must keep `task.id` for tasks whose `(title, category)` is unchanged so their completions survive.
 - Streak: ≥1 completion counts for the day; one grace day per week. This is the most important design detail — don't make it stricter.
 - Backfill: only the last 3 days, 50% XP, reduction shown explicitly.
@@ -23,11 +23,12 @@ React 18 + TypeScript · Vite · Tailwind · `react-router-dom` (HashRouter) · 
 ## Target layout
 ```
 src/
-  lib/          supabase.ts, parser.ts, schedule.ts, routines.ts, gamification.ts, achievements.ts  ← pure logic, unit-tested
+  lib/          supabase.ts, parser.ts, schedule.ts, routines.ts, gamification.ts, timer.ts, achievements.ts  ← pure logic, unit-tested
+  data/         DataProvider (tasks + completions + realtime), TimerProvider (per-task countdown, persisted), useToday
   auth/         AuthProvider.tsx, RequireAuth.tsx
   screens/      Login.tsx, Today.tsx, Calendar.tsx, Plan.tsx
   components/   shared UI
-supabase/       schema.sql (tables + indexes + RLS), seed-profiles.sql
+supabase/       schema.sql (tables + RLS + grants + realtime), seed-profiles.sql (by email), migrations/ (run in order on an existing project)
 .github/workflows/deploy.yml
 ```
 Keep UI thin; anything with a rule in it lives in `src/lib` with a test.
@@ -43,7 +44,7 @@ npm run preview
 Env: `.env.local` (gitignored) with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; `.env.example` documents them.
 
 ## Deploy
-Push to `main` → GitHub Actions (`deploy.yml` from spec §8) → https://denizberkin.github.io/routine/ . Remote `origin` = github.com/denizberkin/routine, already configured. Repo is public on purpose. Supabase dashboard steps (schema, users, realtime, secrets) are the user's — they're marked **(user)** in `TODO.md`.
+Push to `main` → GitHub Actions (`deploy.yml` from spec §8) → https://denizberkin.github.io/routine/ . Remote `origin` = github.com/denizberkin/routine, already configured. Repo is public on purpose. Supabase dashboard steps (schema, users, secrets) are the user's — they're marked **(user)** in `TODO.md`. Schema changes go in `supabase/migrations/` *and* `schema.sql`; tell the user the one line to run.
 
 ## Environment
 Windows 11. PowerShell 5.1 is the primary shell (no `&&`; use `;`). Git Bash also available. Node 24, npm 11, git 2.46, gh 2.67. `junk/` is gitignored scratch — leave it alone.

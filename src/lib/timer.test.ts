@@ -9,10 +9,11 @@ describe('inferMinutes', () => {
     expect(inferMinutes('45m circuit')).toBe(45)
     expect(inferMinutes('Deep work 1 hour')).toBe(60)
     expect(inferMinutes('2h study block')).toBe(120)
+    expect(inferMinutes('Five-minute minimum (walk around the block)')).toBe(5)
+    expect(inferMinutes('Ten minute tidy')).toBe(10)
   })
   it('ignores numbers that are not durations', () => {
     expect(inferMinutes('Sutton and Barto Ch. 1-3')).toBeNull()
-    expect(inferMinutes('Five-minute minimum')).toBeNull()
     expect(inferMinutes('Taxi-v3 in 3 files')).toBeNull()
   })
 })

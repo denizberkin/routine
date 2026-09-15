@@ -4,7 +4,7 @@ Source of truth: `routine-spec.md`. Order follows spec §9. **The app is genuine
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **(user)** = manual step only the user can do (dashboards, secrets)
 
-State as of 2026-09-15: Phases 1–6 built and deployed; Supabase project live with both users. Login (email + Google/GitHub) works. Pending user checks: plan save on `/plan` (was silently failing when the profile row was missing — now surfaces an error) and first real completions. Next: Phase 7 calendar, then the rest of Phase 8.
+State as of 2026-09-15: Phases 1–6 + timers built and deployed. Supabase live; grants applied; user was still seeding `profiles` (email-based `seed-profiles.sql`) and needs to run the duration migration. Next: Phase 7 calendar, then Phase 8 multipliers / bonuses / party goal / poke.
 
 ---
 
@@ -24,6 +24,7 @@ Under-specified behaviors — defaults chosen so they aren't re-decided. Update 
 - [x] Streak: a grace day keeps the run alive but doesn’t add to the count; today never counts against you until it’s over. Level thresholds are per-step (L1→L2 100, L2→L3 300 …), i.e. cumulative 100 / 400 / 1000.
 - [x] Sign out lives in the avatar menu (tap your emoji) in every screen’s header, not on Plan.
 - [x] Plans are split into `plans/exercise.md` and `plans/rl.md` (one routine each); `routine-seed-plan.md` stays as the parser fixture.
+- [x] Timers (user request, not in spec): every task row has a `⏱` chip; length = `~N` token → number in title ("15-20 min" → 15, "Five-minute" → 5) → 25 default. Countdown persists in `localStorage`; end = notification (via `public/sw.js`, needed on Android) + beep + vibration + tab title; "Mark done" completes the task for today. `tasks.duration_min` added (`supabase/migrations/2026-09-15-task-duration.sql`).
 - [x] Level-up celebration + badge-unlock toasts: "seen" state in `localStorage`, keyed by user id + level/badge.
 - [x] `!once` tasks appear in Today every day of their phase window until completed.
 - [x] `recharts` not installed — spec lists it "only if needed for the stats view" and there is no stats screen in v1.

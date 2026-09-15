@@ -7,10 +7,15 @@ export const DEFAULT_MINUTES = 25
  * Read a length out of a title: "Easy walk 15-20 min" → 15, "45m circuit" → 45, "1 hour" → 60.
  * A range takes its lower bound — the minimum is what you commit to.
  */
+const WORDS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  fifteen: 15, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
+}
+
 export function inferMinutes(title: string): number | null {
-  const m = /(\d+)\s*(?:-\s*\d+\s*)?(min(?:ute)?s?|m|h(?:ou)?rs?|h)\b/i.exec(title)
+  const m = /\b(\d+|[a-z]+)[\s-]*(?:-\s*\d+\s*)?(min(?:ute)?s?|m|h(?:ou)?rs?|h)\b/i.exec(title)
   if (!m) return null
-  const n = Number(m[1])
+  const n = /^\d+$/.test(m[1]) ? Number(m[1]) : (WORDS[m[1].toLowerCase()] ?? 0)
   if (!n) return null
   return /^h/i.test(m[2]) ? n * 60 : n
 }
