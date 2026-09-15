@@ -12,6 +12,10 @@ import type { Routine } from '../lib/types'
 
 type RoutineRow = Routine & { task_count: number }
 
+/** Supabase errors are plain objects, not Error instances — read the message either way. */
+const messageOf = (e: unknown, fallback: string) =>
+  typeof e === 'object' && e !== null && 'message' in e && typeof e.message === 'string' ? e.message : fallback
+
 const day = (d: string) => format(parseISO(d), 'd MMM')
 
 export default function Plan() {
@@ -55,7 +59,7 @@ export default function Plan() {
       refresh()
     } catch (e) {
       setSaveState('idle')
-      setSaveError(e instanceof Error ? e.message : 'Could not save.')
+      setSaveError(messageOf(e, 'Could not save.'))
     }
   }
 
@@ -85,7 +89,7 @@ export default function Plan() {
       await deleteRoutine(r.id)
       refreshData()
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : 'Could not delete.')
+      setSaveError(messageOf(e, 'Could not delete.'))
       refresh()
     }
   }
