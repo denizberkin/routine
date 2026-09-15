@@ -168,3 +168,18 @@ describe('split plans', () => {
     expect(rl.tasks.every((t) => t.category === 'RL')).toBe(true)
   })
 })
+
+describe('~N timer token', () => {
+  const one = (line: string) => parseRoutine(`${header}## P\n### C\n${line}\n`)
+  it('reads minutes in any of the accepted spellings', () => {
+    expect(one('- [ ] Walk @daily ~15').tasks[0].duration_min).toBe(15)
+    expect(one('- [ ] Walk @daily ~15m').tasks[0].duration_min).toBe(15)
+    expect(one('- [ ] Walk @daily ~15min +5').tasks[0]).toMatchObject({ duration_min: 15, xp: 5 })
+    expect(one('- [ ] Walk @daily').tasks[0].duration_min).toBeNull()
+  })
+  it('keeps a lone tilde in the title and rejects junk', () => {
+    expect(one('- [ ] Walk ~ jog @daily').tasks[0].title).toBe('Walk ~ jog')
+    expect(one('- [ ] Walk @daily ~abc').errors[0].message).toBe('Unknown token ~abc')
+    expect(one('- [ ] Walk @daily ~0').errors[0].message).toMatch(/between 1 and 600/)
+  })
+})

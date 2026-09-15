@@ -2,6 +2,9 @@ import { NavLink, Outlet } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { useData } from '../data/DataProvider'
+import { useTimer } from '../data/TimerProvider'
+import { formatClock } from '../lib/timer'
+import TimerSheet from './TimerSheet'
 
 const tabs: { to: string; label: string; icon: ReactNode }[] = [
   {
@@ -36,9 +39,11 @@ const tabs: { to: string; label: string; icon: ReactNode }[] = [
 ]
 
 export default function Shell() {
-  const { profileError } = useAuth()
+  const { profileError, me, slotOf } = useAuth()
   const { error } = useData()
+  const timer = useTimer()
   const notice = profileError ?? error
+  const color = me ? `var(--${slotOf(me.id)})` : 'var(--ink)'
   return (
     <div className="flex min-h-dvh flex-col">
       {notice && (
@@ -51,7 +56,21 @@ export default function Shell() {
       <main className="mx-auto w-full max-w-md flex-1 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-28">
         <Outlet />
       </main>
+      <TimerSheet />
       <nav className="fixed inset-x-0 bottom-0 border-t border-line bg-surface/90 backdrop-blur-md">
+        {timer.active && !timer.open && (
+          <button
+            type="button"
+            onClick={timer.show}
+            className="mx-auto flex w-full max-w-md items-center gap-3 border-b border-line px-5 py-2 text-left"
+          >
+            <span className="text-sm font-bold tabular-nums" style={{ color }}>
+              {timer.finished ? 'Time’s up' : formatClock(timer.remaining)}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm text-ink-2">{timer.active.title}</span>
+            {!timer.running && !timer.finished && <span className="text-xs text-ink-3">paused</span>}
+          </button>
+        )}
         <div className="mx-auto flex max-w-md pb-[env(safe-area-inset-bottom)]">
           {tabs.map((t) => (
             <NavLink

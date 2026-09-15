@@ -28,6 +28,7 @@ create table tasks (
   phase text,                          -- e.g. 'Phase 1: Just show up'
   xp int not null default 10,
   recurrence text not null,            -- 'daily' | 'days:mon,wed,fri' | 'weekly:2' | 'once'
+  duration_min int,                    -- optional timer length, from the '~15' token
   starts_on date not null,
   ends_on date,                        -- null = open-ended
   sort_order int not null default 0

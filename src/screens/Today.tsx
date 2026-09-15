@@ -5,15 +5,18 @@ import { useAuth } from '../auth/AuthProvider'
 import AvatarMenu from '../components/AvatarMenu'
 import TaskRow from '../components/TaskRow'
 import { useData } from '../data/DataProvider'
+import { useTimer } from '../data/TimerProvider'
 import { useToday } from '../data/useToday'
 import { levelFor, streak, totalXp } from '../lib/gamification'
 import { doneThisWeek, dueList, isDone, weeklyQuota } from '../lib/schedule'
+import { formatClock, formatMinutes, resolveMinutes } from '../lib/timer'
 import type { Ymd } from '../lib/schedule'
 import type { Completion, Profile, Task } from '../lib/types'
 
 export default function Today() {
   const { me, friend, slotOf } = useAuth()
   const { loading, tasks, completions, complete, uncomplete } = useData()
+  const timer = useTimer()
   const day = useToday()
 
   const myId = me?.id ?? ''
@@ -89,10 +92,14 @@ export default function Today() {
                 const awarded = completions.find(
                   (c) => c.task_id === task.id && c.user_id === me.id && c.due_date === day,
                 )?.xp_awarded
+                const timing = timer.active?.taskId === task.id
                 return (
                   <TaskRow
                     key={task.id}
                     title={task.title}
+                    timerLabel={timing ? formatClock(timer.remaining) : formatMinutes(resolveMinutes(task))}
+                    timerActive={timing}
+                    onTimer={() => (timing ? timer.show() : timer.start(task, resolveMinutes(task)))}
                     meta={
                       quota !== null
                         ? `${doneThisWeek(task, completions, me.id, day)}/${quota} this week`

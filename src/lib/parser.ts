@@ -16,7 +16,7 @@ import type { Recurrence } from './types'
   ### RL
   - [ ] Sutton & Barto Ch. 1-3 !once +50
 
-  Tokens: @daily | @mon,wed,… | @weekly:N | !once | +N (xp, default 10)
+  Tokens: @daily | @mon,wed,… | @weekly:N | !once | +N (xp, default 10) | ~N (timer minutes)
   Strict on purpose: every non-blank line must be recognised or it becomes an error.
 */
 
@@ -26,6 +26,7 @@ export interface ParsedTask {
   phase: string | null
   xp: number
   recurrence: Recurrence
+  duration_min: number | null
   starts_on: string
   ends_on: string | null
   sort_order: number
@@ -57,16 +58,19 @@ function isDate(s: string): boolean {
 }
 
 /** Parse a task line's tail into tokens; returns an error message or the task fields. */
-function parseTaskText(text: string): { title: string; xp: number; recurrence: Recurrence } | string {
+function parseTaskText(
+  text: string,
+): { title: string; xp: number; recurrence: Recurrence; duration_min: number | null } | string {
   const words = text.split(/\s+/).filter(Boolean)
   const titleWords: string[] = []
   let recurrence: Recurrence | null = null
   let xp: number | null = null
+  let duration_min: number | null = null
 
   for (const w of words) {
     const first = w[0]
     // A sigil on its own ("+", "!") is just punctuation in the title.
-    if ((first !== '@' && first !== '!' && first !== '+') || w.length === 1) {
+    if ((first !== '@' && first !== '!' && first !== '+' && first !== '~') || w.length === 1) {
       titleWords.push(w)
       continue
     }
@@ -86,6 +90,11 @@ function parseTaskText(text: string): { title: string; xp: number; recurrence: R
       if (xp !== null) return `More than one +N value`
       xp = Number(w.slice(1))
       continue
+    } else if (/^~\d+(m|min)?$/.test(w)) {
+      if (duration_min !== null) return `More than one ~N value`
+      duration_min = Number(/\d+/.exec(w)![0])
+      if (duration_min < 1 || duration_min > 600) return `~N needs minutes between 1 and 600`
+      continue
     } else {
       return `Unknown token ${w}`
     }
@@ -96,7 +105,7 @@ function parseTaskText(text: string): { title: string; xp: number; recurrence: R
   const title = titleWords.join(' ').trim()
   if (!title) return 'Task has no title'
   if (recurrence === null) return 'Task needs @daily, @mon,wed,…, @weekly:N or !once'
-  return { title, xp: xp ?? 10, recurrence }
+  return { title, xp: xp ?? 10, recurrence, duration_min }
 }
 
 export function parseRoutine(markdown: string): ParsedRoutine {

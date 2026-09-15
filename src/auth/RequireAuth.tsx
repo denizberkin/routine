@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { DataProvider } from '../data/DataProvider'
+import { TimerProvider } from '../data/TimerProvider'
 import { useAuth } from './AuthProvider'
 
 /** Wraps the app routes: waits for the persisted session check, redirects guests to /login, then loads shared data. */
@@ -9,7 +10,9 @@ export default function RequireAuth() {
   if (!session) return <Navigate to="/login" replace />
   return (
     <DataProvider>
-      <Outlet />
+      <TimerProvider>
+        <Outlet />
+      </TimerProvider>
     </DataProvider>
   )
 }

@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns'
 import { useAuth } from '../auth/AuthProvider'
 import AvatarMenu from '../components/AvatarMenu'
 import { describeRecurrence, parseRoutine } from '../lib/parser'
+import { formatMinutes } from '../lib/timer'
 import type { ParsedRoutine, ParsedTask } from '../lib/parser'
 import { listRoutines, saveRoutine, setRoutineActive } from '../lib/routines'
 import type { Routine } from '../lib/types'
@@ -219,7 +220,10 @@ function Preview({ parsed, color }: { parsed: ParsedRoutine; color: string }) {
                 {tasks.map((t) => (
                   <li key={t.line} className="flex items-baseline gap-3 py-1 text-sm">
                     <span className="min-w-0 flex-1 truncate">{t.title}</span>
-                    <span className="shrink-0 text-xs text-ink-3">{describeRecurrence(t.recurrence)}</span>
+                    <span className="shrink-0 text-xs text-ink-3">
+                      {describeRecurrence(t.recurrence)}
+                      {t.duration_min !== null && ` · ${formatMinutes(t.duration_min)}`}
+                    </span>
                     <span className="w-9 shrink-0 text-right text-xs font-semibold tabular-nums" style={{ color }}>
                       +{t.xp}
                     </span>

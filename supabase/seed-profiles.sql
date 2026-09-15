@@ -1,6 +1,10 @@
--- Run after creating both users in Authentication → Users.
--- Get each id from the Users list (or: select id, email from auth.users;).
+-- Run after creating both users in Authentication → Users. Looks ids up by email so nothing is copied by hand.
+-- Whoever is inserted first gets the first color (marigold); the second gets lilac.
 
-insert into profiles (id, display_name, avatar_emoji) values
-  ('3662c4ab-93de-4ad5-b43a-49c554b60a0f', 'Deniz',  '🎯'),
-  ('9c804e2c-39bf-4590-b3a1-00554f3be561', 'Dummy', '🐢');
+insert into profiles (id, display_name, avatar_emoji)
+select id, 'Deniz', '🎯' from auth.users where email = 'berkindeniz2000@gmail.com'
+on conflict (id) do update set display_name = excluded.display_name, avatar_emoji = excluded.avatar_emoji;
+
+insert into profiles (id, display_name, avatar_emoji)
+select id, 'Test', '🐢' from auth.users where email = 'friend@example.com'
+on conflict (id) do update set display_name = excluded.display_name, avatar_emoji = excluded.avatar_emoji;

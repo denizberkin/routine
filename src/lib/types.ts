@@ -26,6 +26,8 @@ export interface Task {
   phase: string | null
   xp: number
   recurrence: Recurrence
+  /** Timer length in minutes, from the `~15` token; null = infer from title or default */
+  duration_min: number | null
   starts_on: string // YYYY-MM-DD
   ends_on: string | null
   sort_order: number
