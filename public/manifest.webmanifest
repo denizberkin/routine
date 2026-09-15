@@ -1,0 +1,10 @@
+{
+  "name": "Routine",
+  "short_name": "Routine",
+  "start_url": "/routine/#/",
+  "scope": "/routine/",
+  "display": "standalone",
+  "background_color": "#17151F",
+  "theme_color": "#17151F",
+  "icons": [{ "src": "/routine/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

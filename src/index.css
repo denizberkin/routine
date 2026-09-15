@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/* System stack only (spec §7). ui-rounded resolves to SF Pro Rounded on Apple devices
+   and falls through to the platform sans elsewhere. */
+@theme {
+  --font-sans: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", sans-serif;
+  --radius-row: 14px;
+}
+
+/* Semantic tokens. Dark is the default (spec §7); light is applied when the OS asks for it.
+   Components use these names only — never dark: variants. */
+@theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-u1: var(--u1);
+  --color-u1-ink: var(--u1-ink);
+  --color-u2: var(--u2);
+  --color-u2-ink: var(--u2-ink);
+  --color-danger: var(--danger);
+}
+
+:root {
+  color-scheme: dark;
+  --ground: #17151f;
+  --surface: #211e2b;
+  --surface-2: #2b2739;
+  --line: #332e42;
+  --ink: #edeaf4;
+  --ink-2: #9b96ad;
+  --ink-3: #6b6680;
+  /* Two people, two colors, fixed everywhere. Marigold and lilac — a dawn pair. */
+  --u1: #f5a524;
+  --u1-ink: #f5a524;
+  --u2: #a78bfa;
+  --u2-ink: #b9a3ff;
+  --danger: #fb7185;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --ground: #f6f5fa;
+    --surface: #ffffff;
+    --surface-2: #eeecf5;
+    --line: #e2dfec;
+    --ink: #1c1a26;
+    --ink-2: #5f5b70;
+    --ink-3: #938fa6;
+    --u1: #f5a524;
+    --u1-ink: #a8670a;
+    --u2: #a78bfa;
+    --u2-ink: #6a4fd1;
+    --danger: #e11d48;
+  }
+}
+
+@layer base {
+  html {
+    background: var(--ground);
+    color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    min-height: 100dvh;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ink-2);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  button,
+  [role="button"] {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  input,
+  textarea {
+    font: inherit;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
