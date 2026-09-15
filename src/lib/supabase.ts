@@ -7,5 +7,5 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 export const isConfigured = Boolean(url && anonKey)
 
 export const supabase = createClient(url || 'http://localhost', anonKey || 'missing', {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
 })
